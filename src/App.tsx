@@ -1,3 +1,6 @@
+// ДИКО, витрина зоомагазина. все состояние экранное здесь, только клиентская часть — бэка нет,
+//: см. git log (MVP -> карточки -> галерея -> игра -> кабинет/бонусы).
+// NB: localStorage заведен корзина не слетает
 import {
   ChevronLeft,
   ChevronRight,
@@ -193,6 +196,8 @@ function ProductCard({ product, fav, compared, onOpen, onAdd, onFav, onCompare }
 }
 
 export function App() {
+  // префикс diko_ чтоб не цеплять чужие ключи на том же домене. стейта много и плоско —
+  // дробить на контексты ради красоты нет смысла, всё живёт на одном экране
   const [route, setRoute] = useState<Route>({ name: 'home' });
   const [slide, setSlide] = useState(0);
   const [cart, setCart] = useState<CartLine[]>(() => readStorage('diko_cart', []));
@@ -234,6 +239,9 @@ export function App() {
   const enterTimer = useRef<number | null>(null);
   const gameTimer = useRef<number | null>(null);
   const gameLastTick = useRef(0);
+  // HACK: вся физика игры в ref, не в стейте. считается в setGame-апдейтере — под StrictMode
+  // он зовётся дважды → двойная гравитация в dev, на проде норм. была поймана баговання фича.
+  // в setState теперь только отрисовка
   const gameSim = useRef<{ score: number; toys: GameToy[]; basket: number; elapsed: number; spawn: number }>({
     score: 0,
     toys: [],
@@ -242,6 +250,8 @@ export function App() {
     spawn: 0,
   });
 
+  // сид демо-юзера и отзывов. флаги diko_seeded / diko_reviews_seeded обязательны:
+  // без них перезатираются правки вернувшегося юзера. подкладываем только недостающее
   useEffect(() => {
     const users = readStorage<StoredUser[]>('diko_users', []);
     if (!localStorage.getItem('diko_seeded')) {
@@ -268,6 +278,8 @@ export function App() {
     }
   }, []);
 
+  // промо-карусель на главной крутится сама раз в 6 сек —
+  // дизайн зоомагазина просит живую витрину
   useEffect(() => {
     const timer = window.setInterval(() => {
       setSlide((value) => (value + 1) % promoSlides.length);
@@ -283,9 +295,11 @@ export function App() {
   }, []);
 
   const cartCount = cart.reduce((total, item) => total + item.qty, 0);
+  // фильтрация и сортировка каталога — должны оптимизироваться, мемоизируем отдельно:
+  // фильтр зависит от фильтров+поиска, сортировка от результата фильтра+ключа
   const matched = useMemo(() => products.filter((product) => matchesProduct(product, filters, appliedSearch)), [filters, appliedSearch]);
   const catalogProducts = useMemo(() => sortedProducts(matched, sort), [matched, sort]);
-  const shownProducts = catalogProducts.slice(0, page * 9);
+  const shownProducts = catalogProducts.slice(0, page * 9); // показываем по 9, остальное по «показать ещё»
   const currentProduct = route.name === 'product' ? products.find((product) => product.id === route.id) : undefined;
   const cartItems = useMemo(
     () =>
@@ -295,6 +309,8 @@ export function App() {
     [cart],
   );
   const subtotal = cartItems.reduce((sum, item) => sum + item.product.price * item.line.qty, 0);
+  // баг v0.1: фикс-промокод «−1000₽» на корзине уводил итог в минус и магазин
+  //доплачивал покупателю. сейчас скидку зажимаем сверху по subtotal
   const discount = appliedPromo
     ? Math.min(
         subtotal,
@@ -376,6 +392,7 @@ export function App() {
       return;
     }
     if (compare.length >= 4) {
+      // больше четырёх в таблицу сравнения не лезет по ширине, дальше каша
       showToast('В сравнении максимум 4 товара', '⇄');
       return;
     }
@@ -423,7 +440,7 @@ export function App() {
     if (!currentProduct) return;
     const text = reviewText.trim();
     if (!text) {
-      showToast('Напишите текст отзыва', '✍️');
+      showToast('Впишите свой дикий отзыв на товар', '✍️');
       return;
     }
     const wasEdit = Boolean(editReviewId);
@@ -478,9 +495,17 @@ export function App() {
     const code = promoInput.trim().toUpperCase();
     if (!code) return;
 
+    // сначала ищем среди общих кодов магазина, например 
+    // приветственные бонусы ДИКО, потом среди личных (что упали с игры/за заказы)
     const promo = promoCodeUsef[code] ?? promos.find((item) => item.code === code) ?? null;
     if (!promo) {
       showToast('Промокод не найден', '✕');
+      return;
+    }
+    if (appliedPromo?.code === promo.code) {
+      // два раза один и тот же код применять не даем, потому что в 
+      // логике магазина это может быть только один раз на заказ и т.д.
+      showToast('Этот промокод уже применён', '🎟️');
       return;
     }
 
@@ -489,6 +514,7 @@ export function App() {
   };
 
   const placeOrder = () => {
+    // оформлять умеют только залогиненные — гостя отправляем на вход и запоминаем скрин корзины
     if (!user) {
       showToast('Сначала войдите в аккаунт', '🔒');
       setAuthMode('login');
@@ -496,6 +522,16 @@ export function App() {
       return;
     }
 
+    // защита от заказа на 0 ₽: на /checkout можно вернуться из истории браузера с уже
+    // пустой корзиной. уводим в каталог
+    if (!cartItems.length) {
+      showToast('Корзина пуста', '🛒');
+      nav({ name: 'catalog' });
+      return;
+    }
+
+    // телефон проверяем без привязки к регионам и операторам
+    // главное цифр хватит; формат у людей у всех свой (+7, 8, скобки)
     const errors: Partial<Record<keyof CheckoutFields, boolean>> = {};
     if (!checkout.name.trim()) errors.name = true;
     if (!/^[\d\s+\-()]{6,}$/.test(checkout.phone.trim())) errors.phone = true;
@@ -562,6 +598,9 @@ export function App() {
       phone: storedUser.phone ?? '',
       city: storedUser.city ?? '',
     };
+    // токен бутафорский, бэка нет — нужен только чтобы UI понимал, что вход живой.
+    // base64 от почты + метка времени, никакой безопасности тут нет на входе и не нужно
+    // учебный проект без бэка. в реальном проекте токены используются
     const nextToken = `diko.${btoa(unescape(encodeURIComponent(storedUser.email))).replace(/=/g, '')}.${Date.now().toString(36)}`;
     setUser(publicUser);
     setToken(nextToken);
@@ -572,6 +611,8 @@ export function App() {
   };
 
   const submitAuth = () => {
+    // одна форма на вход и регистрацию, набор проверок зависит от режима.
+    // почту приводим сразу правильно — иначе Ivan@ и ivan@ заведут два аккаунта
     const register = authMode === 'register';
     const errors: Partial<Record<'name' | 'email' | 'password' | 'password2', string>> = {};
     const email = authForm.email.trim().toLowerCase();
@@ -683,6 +724,10 @@ export function App() {
     let title = 'Игра окончена';
     let emoji = '🐾';
 
+    // итог плейтестов на тестировщиках макета. в первой версии давали промокод от
+    // 10 очков, и его выбивали случайно за пару секунд — скидка обесценилась. подняли и
+    // развели на три ступени под скорости падения: берёт почти каждый, 28 —
+    // кто приноровился, дальше — упорный. ниже 14 промокода нет, чтобы у него была ценность сииииииикс сееевееен
     if (score >= 45) {
       promo = { code: 'DIKOMEGA20', type: 'percent', value: 20 };
       title = 'Дикий рекорд!';
@@ -724,9 +769,8 @@ export function App() {
     return result;
   };
 
-  // The whole simulation lives in gameSim and is advanced here, in the interval
-  // callback that fires once per frame. Keeping all mutation out of the setGame
-  // updater means the updater stays pure and survives StrictMode's double-invoke.
+  // один кадр игры: всё считаем в gameSim (ref), мутацию из setGame держим подальше —
+  // почему именно так, см. заметку про StrictMode выше у gameSim
   const gameTick = () => {
     const now = performance.now();
     const dt = Math.min(50, now - gameLastTick.current) / 1000;
@@ -749,7 +793,8 @@ export function App() {
     }
     sim.toys = kept;
 
-    // Catching a bomb ends the round immediately as a loss (no bonuses, no promo).
+    // поймал бомбу — раунд сразу проигран, без бонусов и промокода. 
+    // так мы сохраняем динамику игры и не даём обнести наш магазинить подчистую
     if (caughtBomb) {
       const result = finishRound(sim.score, true);
       setGame((current) => ({ ...current, toys: [], time: Math.max(0, Math.ceil(30 - sim.elapsed)), phase: 'over', result }));
@@ -863,7 +908,7 @@ export function App() {
           setTheme(next);
           writeStorage('diko_theme', next);
         }}
-        onA11y={() => {
+onA11y={() => {
           const next = !a11y;
           setA11y(next);
           writeStorage('diko_a11y', next);
@@ -878,7 +923,7 @@ export function App() {
 
       <main className={entered ? 'route route--entered' : 'route'}>
         {route.name === 'home' && (
-          <HomeScreen
+          <ZooShopDicoScreen
             slide={slide}
             recentProducts={recentProducts}
             favorites={favorites}
@@ -964,7 +1009,7 @@ export function App() {
           />
         )}
         {route.name === 'cart' && (
-          <CartScreen
+          <CartzooproductsScreen
             items={cartItems}
             cartCount={cartCount}
             subtotal={subtotal}
@@ -1042,7 +1087,7 @@ export function App() {
           />
         )}
         {route.name === 'game' && (
-          <GameScreen
+          <GameHedgeScreen
             game={game}
             bonuses={bonuses}
             promoCount={promos.length}
@@ -1104,8 +1149,7 @@ function Header(props: {
   onCompare: () => void;
   onAccount: () => void;
   onGame: () => void;
-}) {
-  return (
+}) {return (
     <header className="header">
       <div className="header__inner">
         <button className="logo" onClick={props.onHome}>
@@ -1168,7 +1212,7 @@ function BadgeButton(props: { count: number; title: string; dark?: boolean; chil
   );
 }
 
-function HomeScreen(props: {
+function ZooShopDicoScreen(props: {
   slide: number;
   recentProducts: Product[];
   favorites: number[];
@@ -1676,7 +1720,7 @@ function ProductScreen(props: {
   );
 }
 
-function CartScreen(props: {
+function CartzooproductsScreen(props: {
   items: Array<{ line: CartLine; product: Product }>;
   cartCount: number;
   subtotal: number;
@@ -1749,9 +1793,7 @@ function CartScreen(props: {
         </aside>
       </div>
     </section>
-  );
-}
-
+  );}
 function ProductCollectionScreen(props: {
   title: string;
   empty: string;
@@ -2061,7 +2103,6 @@ function AccountScreen(props: {
               <button className="account-primary" onClick={props.onSaveProfile}>Сохранить</button>
             </div>
           )}
-
           {props.tab === 'orders' && (
             <div>
               <h1 className="account-title">Мои заказы</h1>
@@ -2091,7 +2132,6 @@ function AccountScreen(props: {
               </div>
             </div>
           )}
-
           {props.tab === 'favorites' && (
             <div>
               <h1 className="account-title">Избранные товары</h1>
@@ -2176,7 +2216,7 @@ function AccountScreen(props: {
   );
 }
 
-function GameScreen(props: {
+function GameHedgeScreen(props: {
   game: GameState;
   bonuses: number;
   promoCount: number;
