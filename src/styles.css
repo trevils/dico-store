@@ -31,7 +31,7 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--purple), transparent 55%);
+  outline: 3px solid color-mix(in srgb, var(--accent), transparent 55%);
   outline-offset: 2px;
 }
 
@@ -45,6 +45,14 @@ textarea:focus-visible {
   border-radius: 999px;
 }
 
+/* Фирменная Палитра Зоомагазина уникальных питомцев ДИКО
+   --brand — фирменный жёлтый, кнопки "в корзину", ценники акций
+   --accent — фиолетовый, вторичные действия и ссылки (фокус-обводка)
+   --success — зелёный для "в наличии" и плашки скидки
+   --ink/on-ink — почти чёрная заливка под белый текст (шапки, бейджи)
+   светлую и тёмную тему держим тоже здесь, всё остальное через var() —
+   так дизайн меняеся за один токен и не лезет в 3000 строк,
+   улучшаем так оптимизацию и для прогаммистов и для UI */
 .app {
   --bg: oklch(0.99 0.006 95);
   --surface: #ffffff;
@@ -52,10 +60,10 @@ textarea:focus-visible {
   --text: oklch(0.2 0.02 280);
   --text-dim: oklch(0.52 0.015 280);
   --border: oklch(0.91 0.008 280);
-  --yellow: oklch(0.86 0.165 95);
-  --yellow-deep: oklch(0.81 0.16 90);
-  --purple: oklch(0.55 0.22 300);
-  --green: oklch(0.7 0.17 150);
+  --brand: oklch(0.86 0.165 95);
+  --brand-deep: oklch(0.81 0.16 90); /* темнее — для перекрытий и градиентов */
+  --accent: oklch(0.55 0.22 300);
+  --success: oklch(0.7 0.17 150);
   --ink: oklch(0.18 0.02 280);
   --on-ink: #ffffff;
   --shadow: 0 6px 24px rgba(20, 18, 40, 0.08);
@@ -65,6 +73,7 @@ textarea:focus-visible {
   transition: background 0.35s ease, color 0.35s ease;
 }
 
+/* тёмная тема: в ней жёлтый становится "чернилами" (--ink), по-другому текст по нему не читается */
 .app[data-theme='dark'] {
   color-scheme: dark;
   --bg: oklch(0.16 0.02 285);
@@ -73,15 +82,16 @@ textarea:focus-visible {
   --text: oklch(0.95 0.01 280);
   --text-dim: oklch(0.72 0.02 280);
   --border: oklch(0.31 0.03 285);
-  --yellow: oklch(0.86 0.165 95);
-  --yellow-deep: oklch(0.8 0.16 90);
-  --purple: oklch(0.7 0.18 300);
-  --green: oklch(0.78 0.17 150);
+  --brand: oklch(0.86 0.165 95);
+  --brand-deep: oklch(0.8 0.16 90);
+  --accent: oklch(0.7 0.18 300);
+  --success: oklch(0.78 0.17 150);
   --ink: oklch(0.86 0.165 95);
   --on-ink: oklch(0.2 0.02 280);
   --shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
 }
 
+/* режим для слабовидящих: крупнее и контрастнее */
 .app[data-a11y='true'] {
   zoom: 1.16;
   --text: oklch(0.12 0.02 280);
@@ -103,6 +113,7 @@ textarea:focus-visible {
   font-size: 12px;
 }
 
+/* шапка магазина — поверх всего, под ней каталог с зоотоварами для экзотов скроллится */
 .header {
   position: sticky;
   top: 0;
@@ -133,7 +144,7 @@ textarea:focus-visible {
 
 .logo span,
 .footer__logo span {
-  color: var(--purple);
+  color: var(--accent);
 }
 
 .top-nav {
@@ -159,7 +170,7 @@ textarea:focus-visible {
 }
 
 .top-nav__accent {
-  color: var(--purple) !important;
+  color: var(--accent) !important;
   font-weight: 600 !important;
 }
 
@@ -224,7 +235,7 @@ textarea:focus-visible {
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: var(--purple);
+  background: var(--accent);
   color: #fff;
   font-size: 11px;
   font-weight: 700;
@@ -251,7 +262,7 @@ textarea:focus-visible {
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: var(--yellow);
+  background: var(--brand);
   color: #3a2e00;
   font-size: 13px;
   font-weight: 700;
@@ -582,7 +593,7 @@ textarea:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  color: var(--purple);
+  color: var(--accent);
   font-size: 14px;
   font-weight: 600;
 }
@@ -625,7 +636,7 @@ textarea:focus-visible {
 
 .category-tile:hover,
 .product-card:hover {
-  border-color: var(--purple);
+  border-color: var(--accent);
   box-shadow: var(--shadow);
   transform: translateY(-5px);
 }
@@ -645,6 +656,8 @@ textarea:focus-visible {
   gap: 18px;
 }
 
+/* карточка товара в каталоге. вся высота тянется до низа, чтобы кнопка "в корзину"
+   у всех в ряд была на одной линии, даже если соседние название в две строки */
 .product-card {
   position: relative;
   min-height: 330px;
@@ -667,8 +680,8 @@ textarea:focus-visible {
   overflow: hidden;
   border-radius: 14px;
   background:
-    radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--yellow), transparent 70%), transparent 30%),
-    linear-gradient(135deg, var(--surface-2), color-mix(in srgb, var(--surface-2), var(--purple) 7%));
+    radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--brand), transparent 70%), transparent 30%),
+    linear-gradient(135deg, var(--surface-2), color-mix(in srgb, var(--surface-2), var(--accent) 7%));
 }
 
 .product-card__emoji {
@@ -726,11 +739,11 @@ textarea:focus-visible {
 }
 
 .active-purple {
-  color: var(--purple) !important;
+  color: var(--accent) !important;
 }
 
 .active-green {
-  color: var(--green) !important;
+  color: var(--success) !important;
 }
 
 .product-card__title {
@@ -797,7 +810,7 @@ textarea:focus-visible {
 }
 
 .compare-state--on {
-  background: var(--green);
+  background: var(--success);
 }
 
 .brand-row {
@@ -818,7 +831,7 @@ textarea:focus-visible {
 }
 
 .brand-row button:hover {
-  border-color: var(--purple);
+  border-color: var(--accent);
 }
 
 .breadcrumb {
@@ -835,6 +848,7 @@ textarea:focus-visible {
   text-decoration: underline;
 }
 
+/* каталог = фильтры слева + сетка товаров. на мобиле фильтры уезжают в шторку */
 .catalog-layout {
   display: grid;
   grid-template-columns: 280px minmax(0, 1fr);
@@ -842,6 +856,7 @@ textarea:focus-visible {
   align-items: start;
 }
 
+/* панель фильтров: вид, категория, бренд, цена и т.д. */
 .filters-panel {
   position: sticky;
   top: 88px;
@@ -868,7 +883,7 @@ textarea:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: var(--purple);
+  color: var(--accent);
   font-size: 13px;
   font-weight: 600;
 }
@@ -913,7 +928,7 @@ textarea:focus-visible {
 
 .filter-block input[type='range'] {
   width: 100%;
-  accent-color: var(--purple);
+  accent-color: var(--accent);
 }
 
 .filter-block select {
@@ -936,7 +951,7 @@ textarea:focus-visible {
   width: 17px;
   height: 17px;
   flex-shrink: 0;
-  accent-color: var(--purple);
+  accent-color: var(--accent);
 }
 
 .check-line span {
@@ -958,7 +973,7 @@ textarea:focus-visible {
 }
 
 .toggle-line input {
-  accent-color: var(--green);
+  accent-color: var(--success);
 }
 
 .catalog-main {
@@ -1036,8 +1051,8 @@ textarea:focus-visible {
 }
 
 .product-row:hover {
-  border-color: var(--purple);
-}
+  border-color: var(--accent);
+}туду медиа карточки визуальные части
 
 .product-row__visual {
   width: 150px;
@@ -1208,7 +1223,7 @@ textarea:focus-visible {
 }
 
 .gallery__thumb--active {
-  border-color: var(--purple);
+  border-color: var(--accent);
 }
 
 .product-info__meta,
@@ -1248,7 +1263,7 @@ textarea:focus-visible {
 }
 
 .rating-line span:first-child {
-  color: var(--yellow-deep);
+  color: var(--brand-deep);
   font-weight: 600;
 }
 
@@ -1403,7 +1418,7 @@ textarea:focus-visible {
 }
 
 .star-input__active {
-  color: var(--yellow-deep) !important;
+  color: var(--brand-deep) !important;
 }
 
 .review-form textarea {
@@ -1493,7 +1508,7 @@ textarea:focus-visible {
 }
 
 .review-stars {
-  color: var(--yellow-deep);
+  color: var(--brand-deep);
   font-size: 15px;
 }
 
@@ -1511,7 +1526,7 @@ textarea:focus-visible {
 }
 
 .review-actions button:first-child {
-  color: var(--purple);
+  color: var(--accent);
 }
 
 .review-actions button:last-child {
@@ -1594,6 +1609,8 @@ textarea:focus-visible {
   font-size: 13px;
 }
 
+/* блок итогов в корзине: товары, скидка по промокоду, доставка, к оплате.
+   прилипает при скролле, чтобы кнопка "оформить" всегда была на виду */
 .cart-summary {
   position: sticky;
   top: 88px;
@@ -1637,11 +1654,11 @@ textarea:focus-visible {
 }
 
 .summary-row--green {
-  color: var(--green);
+  color: var(--success);
 }
 
 .summary-row--green span {
-  color: var(--green);
+  color: var(--success);
 }
 
 .summary-total {
@@ -1694,18 +1711,18 @@ textarea:focus-visible {
 }
 
 .care-advice__item--warn {
-  border-color: color-mix(in srgb, var(--yellow-deep), transparent 40%);
-  background: color-mix(in srgb, var(--yellow), transparent 86%);
+  border-color: color-mix(in srgb, var(--brand-deep), transparent 40%);
+  background: color-mix(in srgb, var(--brand), transparent 86%);
 }
 
 .care-advice__item--tip {
-  border-color: color-mix(in srgb, var(--purple), transparent 60%);
-  background: color-mix(in srgb, var(--purple), transparent 92%);
+  border-color: color-mix(in srgb, var(--accent), transparent 60%);
+  background: color-mix(in srgb, var(--accent), transparent 92%);
 }
 
 .care-advice__item--ok {
-  border-color: color-mix(in srgb, var(--green), transparent 50%);
-  background: color-mix(in srgb, var(--green), transparent 88%);
+  border-color: color-mix(in srgb, var(--success), transparent 50%);
+  background: color-mix(in srgb, var(--success), transparent 88%);
 }
 
 .loyalty-card {
@@ -1760,7 +1777,7 @@ textarea:focus-visible {
 .page--narrow,
 .page--checkout,
 .page--auth,
-.page--game {
+.page--gameBeasteariy {
   max-width: 920px;
 }
 
@@ -1797,11 +1814,11 @@ textarea:focus-visible {
 }
 
 .success-panel p strong {
-  color: var(--green);
+  color: var(--success);
 }
 
 .success-panel__actions,
-.game-actions {
+.gameBeasteariy-actions {
   display: flex;
   justify-content: center;
   gap: 12px;
@@ -1812,21 +1829,21 @@ textarea:focus-visible {
 .auth-notice button,
 .auth-submit,
 .account-primary,
-.game-overlay > button,
-.game-actions button:first-child {
+.gameBeasteariy-overlay > button,
+.gameBeasteariy-actions button:first-child {
   background: var(--ink);
   color: var(--on-ink);
 }
 
 .success-panel__actions button,
-.game-actions button {
+.gameBeasteariy-actions button {
   padding: 14px 28px;
   border-radius: 999px;
   font-weight: 600;
 }
 
 .success-panel__actions button:last-child,
-.game-actions button:last-child {
+.gameBeasteariy-actions button:last-child {
   border: 1.5px solid var(--border);
   background: transparent;
   color: var(--text);
@@ -1840,7 +1857,7 @@ textarea:focus-visible {
   margin: 18px 0 22px;
   padding: 18px 22px;
   border-radius: 18px;
-  background: var(--yellow);
+  background: var(--brand);
   color: #241c00;
 }
 
@@ -1947,13 +1964,13 @@ textarea:focus-visible {
   margin-top: 0;
   padding: 0 16px;
   border-radius: 10px;
-  background: var(--purple);
+  background: var(--accent);
   color: #fff;
-}
+} сииикс севееен
 
 .promo-applied {
   margin-top: 8px !important;
-  color: var(--green) !important;
+  color: var(--success) !important;
   font-size: 13px;
   font-weight: 600;
 }
@@ -1968,6 +1985,8 @@ textarea:focus-visible {
   padding-top: 44px;
 }
 
+/* карточка входа/регистрации, чтобы не трогать новые вкладки и затрачивать вреся клиентов магазина
+ переключаем содержимое */
 .auth-card {
   padding: 32px;
 }
@@ -2085,7 +2104,7 @@ textarea:focus-visible {
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: var(--yellow);
+  background: var(--brand);
   color: #3a2e00;
   font-size: 20px;
   font-weight: 800;
@@ -2105,7 +2124,7 @@ textarea:focus-visible {
 
 .bonus-card,
 .bonus-dico {
-  background: linear-gradient(120deg, var(--purple), oklch(0.62 0.2 330));
+  background: linear-gradient(120deg, var(--accent), oklch(0.62 0.2 330));
   color: #fff;
 }
 
@@ -2228,7 +2247,7 @@ textarea:focus-visible {
 .order-card__head em {
   padding: 4px 12px;
   border-radius: 999px;
-  background: var(--yellow);
+  background: var(--brand);
   color: #3a2e00;
   font-style: normal;
   font-size: 12px;
@@ -2264,7 +2283,7 @@ textarea:focus-visible {
 }
 
 .order-card__total span {
-  color: var(--green);
+  color: var(--success);
   font-size: 13px;
   font-weight: 600;
 }
@@ -2294,7 +2313,7 @@ textarea:focus-visible {
   padding: 14px 26px;
   border-radius: 999px;
   background: #fff;
-  color: var(--purple);
+  color: var(--accent);
   font-weight: 700;
 }
 
@@ -2315,7 +2334,7 @@ textarea:focus-visible {
   justify-content: space-between;
   gap: 16px;
   padding: 18px;
-  border: 2px dashed var(--purple);
+  border: 2px dashed var(--accent);
   border-radius: 18px;
   background: var(--surface);
 }
@@ -2339,7 +2358,7 @@ textarea:focus-visible {
 }
 
 .promo-ticket em {
-  color: var(--purple);
+  color: var(--accent);
   font-style: normal;
   font-size: 22px;
 }
@@ -2383,38 +2402,38 @@ textarea:focus-visible {
   font-size: 12px;
 }
 
-.page--game {
+.page--gameBeasteariy {
   max-width: 900px;
 }
 
-.game-heading {
+.gameBeasteariy-heading {
   margin-bottom: 18px;
   text-align: center;
 }
 
-.game-heading h1 {
+.gameBeasteariy-heading h1 {
   margin: 0;
   font-family: 'Unbounded', sans-serif;
   font-size: 32px;
 }
 
-.game-heading p {
+.gameBeasteariy-heading p {
   max-width: 680px;
   margin: 6px auto 0;
   color: var(--text-dim);
 }
 
-.game-field {
+.gameBeasteariy-field {
   position: relative;
   height: 460px;
   overflow: hidden;
   border-radius: 24px;
-  background: linear-gradient(180deg, var(--yellow) 0%, oklch(0.92 0.09 110) 100%);
+  background: linear-gradient(180deg, var(--brand) 0%, oklch(0.92 0.09 110) 100%);
   box-shadow: var(--shadow);
   user-select: none;
 }
 
-.game-hud {
+.gameBeasteariy-hud {
   position: absolute;
   top: 0;
   left: 0;
@@ -2426,7 +2445,7 @@ textarea:focus-visible {
   pointer-events: none;
 }
 
-.game-hud span {
+.gameBeasteariy-hud span {
   padding: 9px 16px;
   border-radius: 14px;
   background: rgba(20, 18, 40, 0.82);
@@ -2435,14 +2454,14 @@ textarea:focus-visible {
   font-weight: 700;
 }
 
-.game-toy {
+.gameBeasteariy-toy {
   position: absolute;
   transform: translate(-50%, -50%);
   pointer-events: none;
   will-change: top;
 }
 
-.game-basket {
+.gameBeasteariy-basket {
   position: absolute;
   bottom: 14px;
   transform: translateX(-50%);
@@ -2451,7 +2470,7 @@ textarea:focus-visible {
   transition: left 0.05s linear;
 }
 
-.game-overlay {
+.gameBeasteariy-overlay {
   position: absolute;
   inset: 0;
   display: flex;
@@ -2465,24 +2484,24 @@ textarea:focus-visible {
   backdrop-filter: blur(3px);
 }
 
-.game-overlay__emoji {
+.gameBeasteariy-overlay__emoji {
   font-size: 80px;
 }
 
-.game-overlay h2 {
+.gameBeasteariy-overlay h2 {
   margin: 8px 0 0;
   font-family: 'Unbounded', sans-serif;
   font-size: 26px;
 }
 
-.game-overlay p {
+.gameBeasteariy-overlay p {
   max-width: 440px;
   margin: 10px 0 0;
   opacity: 0.92;
   line-height: 1.5;
 }
 
-.game-overlay > button {
+.gameBeasteariy-overlay > button {
   margin-top: 18px;
   padding: 16px 40px;
   border-radius: 999px;
@@ -2513,7 +2532,7 @@ textarea:focus-visible {
   letter-spacing: 0.05em;
 }
 
-.game-stats {
+.gameBeasteariy-stats {
   display: flex;
   justify-content: center;
   gap: 30px;
@@ -2522,10 +2541,11 @@ textarea:focus-visible {
   font-size: 14px;
 }
 
-.game-stats strong {
+.gameBeasteariy-stats strong {
   color: var(--text);
 }
 
+/* таблица сравнения товаров — строки из specs, скроллится по горизонтали */
 .compare-table {
   margin-top: 28px;
   overflow: auto;
@@ -2567,7 +2587,7 @@ textarea:focus-visible {
   justify-content: center;
   border-radius: 999px;
   background: var(--surface-2);
-  color: var(--purple);
+  color: var(--accent);
 }
 
 .placeholder-panel h1,
@@ -2612,6 +2632,7 @@ textarea:focus-visible {
   text-align: right;
 }
 
+/* всплывашки в углу ("добавлено в корзину" и т.п.), копятся стопкой */
 .toast-stack {
   position: fixed;
   right: 24px;
@@ -2926,17 +2947,17 @@ textarea:focus-visible {
   }
 
   .success-panel__actions,
-  .game-actions,
+  .gameBeasteariy-actions,
   .pay-options,
-  .game-stats {
+  .gameBeasteariy-stats {
     flex-direction: column;
   }
 
-  .game-field {
+  .gameBeasteariy-field {
     height: 420px;
   }
 
-  .game-heading h1 {
+  .gameBeasteariy-heading h1 {
     font-size: 28px;
   }
 

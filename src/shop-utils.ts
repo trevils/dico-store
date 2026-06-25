@@ -32,7 +32,8 @@ export function badgeLabel(product: Product) {
 
 export function badgeMeta(badge: Badge) {
   return {
-    bg: badge === 'sale' ? 'var(--green)' : badge === 'new' ? 'var(--purple)' : 'var(--yellow)',
+    // sale — зелёный (выгода), new — фиолетовый акцент, остальное (hit) — фирменный жёлтый
+    bg: badge === 'sale' ? 'var(--success)' : badge === 'new' ? 'var(--accent)' : 'var(--brand)',
     color: badge === 'new' ? '#fff' : '#241c00',
   };
 }
