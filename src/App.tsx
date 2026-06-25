@@ -1229,12 +1229,12 @@ function ZooShopDicoScreen(props: {
 
   return (
     <section className="page page--home">
-      <div className="hero">
+      <div className="dico">
         {promoSlides.map((promo, index) => (
-          <div className="hero__slide" key={promo.tag} style={{ background: promo.bg, opacity: index === props.slide ? 1 : 0 }}>
-            <span className="hero__blob" style={{ background: promo.photoBg }} aria-hidden="true" />
-            <div className="hero__copy">
-              <span className="hero__tag" style={{ background: promo.tagBg, color: promo.tagText }}>
+          <div className="dicoMain__slide" key={promo.tag} style={{ background: promo.bg, opacity: index === props.slide ? 1 : 0 }}>
+            <span className="dicoMain__blob" style={{ background: promo.photoBg }} aria-hidden="true" />
+            <div className="dicoMain__copy">
+              <span className="dicoMain__tag" style={{ background: promo.tagBg, color: promo.tagText }}>
                 {promo.tag}
               </span>
               <h1 style={{ color: promo.text }}>{promo.title}</h1>
@@ -1247,7 +1247,7 @@ function ZooShopDicoScreen(props: {
                 {promo.cta}
               </button>
             </div>
-            <div className="hero__visual">
+            <div className="dicoMain__visual">
               {promo.image ? (
                 <img src={promo.image} alt={promo.imageAlt} draggable={false} />
               ) : (
@@ -1256,17 +1256,17 @@ function ZooShopDicoScreen(props: {
             </div>
           </div>
         ))}
-        <button className="hero-arrow hero-arrow--left" onClick={() => props.onSlide((props.slide - 1 + promoSlides.length) % promoSlides.length)}>
+        <button className="dico-arrow dico-arrow--left" onClick={() => props.onSlide((props.slide - 1 + promoSlides.length) % promoSlides.length)}>
           <ChevronLeft size={24} />
         </button>
-        <button className="hero-arrow hero-arrow--right" onClick={() => props.onSlide((props.slide + 1) % promoSlides.length)}>
+        <button className="dico-arrow dico-arrow--right" onClick={() => props.onSlide((props.slide + 1) % promoSlides.length)}>
           <ChevronRight size={24} />
         </button>
-        <div className="hero-dots">
+        <div className="dico-dots">
           {promoSlides.map((promo, index) => (
             <button
               key={promo.tag}
-              className={index === props.slide ? 'hero-dot hero-dot--active' : 'hero-dot'}
+              className={index === props.slide ? 'dico-dot dico-dot--active' : 'dico-dot'}
               style={{ background: index === props.slide ? current.text : 'rgba(0,0,0,.25)' }}
               onClick={() => props.onSlide(index)}
             />
@@ -1325,7 +1325,7 @@ function PromotionsScreen(props: {
           >
             <span className="promotion-card__blob" style={{ background: promo.photoBg }} aria-hidden="true" />
             <div className="promotion-card__copy">
-              <span className="hero__tag" style={{ background: promo.tagBg, color: promo.tagText }}>
+              <span className="dicoMain__tag" style={{ background: promo.tagBg, color: promo.tagText }}>
                 {promo.tag}
               </span>
               <h2>{promo.title}</h2>
@@ -2146,7 +2146,7 @@ function AccountScreen(props: {
           {props.tab === 'bonuses' && (
             <div>
               <h1 className="account-title">Бонусы и промокоды</h1>
-              <div className="bonus-hero">
+              <div className="bonus-dico">
                 <div>
                   <span>Доступно бонусов</span>
                   <strong>{props.bonuses} 🌟</strong>

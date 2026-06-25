@@ -1966,7 +1966,7 @@ textarea:focus-visible {
   border-radius: 10px;
   background: var(--accent);
   color: #fff;
-} сииикс севееен
+} /* сииикс севееен */
 
 .promo-applied {
   margin-top: 8px !important;
@@ -1985,7 +1985,8 @@ textarea:focus-visible {
   padding-top: 44px;
 }
 
-/* карточка входа/регистрации, чтобы не трогать новые вкладки и затрачивать вреся клиентов магазина
+/* к
+рточка входа/регистрации, чтобы не трогать новые вкладки и затрачивать вреся клиентов магазина
  переключаем содержимое */
 .auth-card {
   padding: 32px;
