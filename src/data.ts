@@ -131,6 +131,7 @@ export const products: Product[] = rows.map((row) => {
     stock,
     badge,
     popularity,
+    images: imageInfo ? [imageInfo.src] : [],
     ...(imageInfo ? { image: imageInfo.src, imageAlt: imageInfo.alt } : {}),
     emoji: petInfo?.emoji ?? '🐾',
     catEmoji: catInfo?.emoji ?? '📦',

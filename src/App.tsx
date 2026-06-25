@@ -190,6 +190,36 @@ function ProductMedia({
   return <span className={emojiClassName}>{product.emoji}</span>;
 }
 
+function ProductGalleryMedia({
+  product,
+  index,
+  imageClassName,
+  emojiClassName,
+  loading = 'lazy',
+}: {
+  product: Product;
+  index: number;
+  imageClassName: string;
+  emojiClassName: string;
+  loading?: 'eager' | 'lazy';
+}) {
+  const image = index === 0 ? product.images[0] : undefined;
+
+  if (image) {
+    return (
+      <img
+        className={imageClassName}
+        src={image}
+        alt={product.imageAlt ?? product.title}
+        loading={loading}
+        decoding="async"
+      />
+    );
+  }
+
+  return <span className={emojiClassName}>{product.emoji}</span>;
+}
+
 function ProductCard({ product, fav, compared, onOpen, onAdd, onFav, onCompare }: ProductCardProps) {
   const badge = badgeMeta(product.badge);
 
@@ -396,33 +426,30 @@ export function App() {
   };
 
   const toggleFav = (id: number) => {
-    setFavorites((items) => {
-      const active = items.includes(id);
-      const next = active ? items.filter((item) => item !== id) : [...items, id];
-      writeStorage('diko_fav', next);
-      showToast(active ? 'Убрано из избранного' : 'В избранном', '♥');
-      return next;
-    });
+    const active = favorites.includes(id);
+    const next = active ? favorites.filter((item) => item !== id) : [...favorites, id];
+    setFavorites(next);
+    writeStorage('diko_fav', next);
+    showToast(active ? 'Убрано из избранного' : 'В избранном', '♥');
   };
 
   const toggleCompare = (id: number) => {
-    setCompare((items) => {
-      const active = items.includes(id);
-      if (active) {
-        const next = items.filter((item) => item !== id);
-        writeStorage('diko_compare', next);
-        showToast('Убрано из сравнения', '⇄');
-        return next;
-      }
-      if (items.length >= 4) {
-        showToast('В сравнении максимум 4 товара', '⇄');
-        return items;
-      }
-      const next = [...items, id];
+    const active = compare.includes(id);
+    if (active) {
+      const next = compare.filter((item) => item !== id);
+      setCompare(next);
       writeStorage('diko_compare', next);
-      showToast('Добавлено к сравнению', '⇄');
-      return next;
-    });
+      showToast('Убрано из сравнения', '⇄');
+      return;
+    }
+    if (compare.length >= 4) {
+      showToast('В сравнении максимум 4 товара', '⇄');
+      return;
+    }
+    const next = [...compare, id];
+    setCompare(next);
+    writeStorage('diko_compare', next);
+    showToast('Добавлено к сравнению', '⇄');
   };
 
   const openProduct = (id: number) => {
@@ -1491,7 +1518,7 @@ function ProductScreen(props: {
       <div className="product-detail">
         <div className="gallery">
           <div className="gallery__main" style={{ background: galleryTints[props.galleryIndex] }}>
-            <ProductMedia product={props.product} imageClassName="gallery__image" emojiClassName="gallery__emoji" loading="eager" />
+            <ProductGalleryMedia product={props.product} index={props.galleryIndex} imageClassName="gallery__image" emojiClassName="gallery__emoji" loading="eager" />
           </div>
           <div className="gallery__thumbs">
             {galleryLabels.map((label, index) => (
@@ -1502,7 +1529,7 @@ function ProductScreen(props: {
                 style={{ background: galleryTints[index] }}
                 onClick={() => props.onGallery(index)}
               >
-                <ProductMedia product={props.product} imageClassName="gallery__thumb-image" emojiClassName="gallery__thumb-emoji" />
+                <ProductGalleryMedia product={props.product} index={index} imageClassName="gallery__thumb-image" emojiClassName="gallery__thumb-emoji" />
               </button>
             ))}
           </div>
