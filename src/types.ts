@@ -78,6 +78,8 @@ export type SortKey =
 
 export type ViewMode = 'grid' | 'list';
 
+export type AccountTab = 'profile' | 'orders' | 'bonuses' | 'reviews';
+
 export type Route =
   | { name: 'home' }
   | { name: 'catalog' }
@@ -86,7 +88,7 @@ export type Route =
   | { name: 'favorites' }
   | { name: 'compare' }
   | { name: 'auth' }
-  | { name: 'account' }
+  | { name: 'account'; tab?: AccountTab }
   | { name: 'game' }
   | { name: 'checkout' };
 
@@ -98,6 +100,72 @@ export interface CartLine {
 export interface User {
   name: string;
   email?: string;
+  phone?: string;
+  city?: string;
+}
+
+export interface StoredUser extends User {
+  email: string;
+  password: string;
+}
+
+export interface CheckoutFields {
+  name: string;
+  phone: string;
+  address: string;
+  pay: 'card' | 'cash' | 'split';
+}
+
+export interface Promo {
+  code: string;
+  type: 'percent' | 'fixed';
+  value: number;
+}
+
+export interface OrderItem {
+  id: number;
+  title: string;
+  emoji: string;
+  qty: number;
+  price: number;
+}
+
+export interface Order {
+  no: string;
+  date: string;
+  total: number;
+  bonus: number;
+  status: string;
+  items: OrderItem[];
+}
+
+export interface GameToy {
+  id: number;
+  x: number;
+  y: number;
+  vy: number;
+  type: 'ball' | 'bone' | 'worm' | 'bomb';
+  emoji: string;
+  pts: number;
+  size: string;
+}
+
+export interface GameResult {
+  score: number;
+  bonus: number;
+  promo: Promo | null;
+  title: string;
+  text: string;
+  emoji: string;
+}
+
+export interface GameState {
+  phase: 'idle' | 'play' | 'over';
+  score: number;
+  time: number;
+  toys: GameToy[];
+  basket: number;
+  result: GameResult | null;
 }
 
 export interface Review {

@@ -25,12 +25,17 @@ import type {
   Badge,
   CartLine,
   CategoryId,
+  CheckoutFields,
   Filters,
+  GameState,
+  Order,
   PetId,
+  Promo,
   Product,
   Review,
   Route,
   SortKey,
+  StoredUser,
   Toast,
   User,
   ViewMode,
@@ -59,6 +64,14 @@ const sortDefs: Array<[SortKey, string]> = [
 ];
 
 const brandChips = ['Exo Terra', 'ExoticPro', 'Versele-Laga', 'WildLife', 'Repti', 'Padovan'];
+const demoUser: StoredUser = { name: 'Любовь Шейда', email: 'liubovsheyda@gmail.com', password: 'Teacher_2026' };
+const emptyCheckout: CheckoutFields = { name: '', phone: '', address: '', pay: 'card' };
+const emptyGame: GameState = { phase: 'idle', score: 0, time: 30, toys: [], basket: 50, result: null };
+const promoCatalog: Record<string, Promo> = {
+  DIKO10: { code: 'DIKO10', type: 'percent', value: 10 },
+  EXOTIC15: { code: 'EXOTIC15', type: 'percent', value: 15 },
+  WELCOME300: { code: 'WELCOME300', type: 'fixed', value: 300 },
+};
 const galleryTints = [
   'var(--surface-2)',
   'rgba(120,80,200,.10)',
@@ -218,7 +231,11 @@ export function App() {
   const [favorites, setFavorites] = useState<number[]>(() => readStorage('diko_fav', []));
   const [compare, setCompare] = useState<number[]>(() => readStorage('diko_compare', []));
   const [recent, setRecent] = useState<number[]>(() => readStorage('diko_recent', []));
-  const [user] = useState<User | null>(() => readStorage('diko_user', null));
+  const [user, setUser] = useState<User | null>(() => readStorage('diko_user', null));
+  const [token, setToken] = useState<string | null>(() => readStorage('diko_token', null));
+  const [bonuses, setBonuses] = useState<number>(() => readStorage('diko_bonuses', 0));
+  const [promos, setPromos] = useState<Promo[]>(() => readStorage('diko_promos', []));
+  const [orders, setOrders] = useState<Order[]>(() => readStorage('diko_orders', []));
   const [theme, setTheme] = useState<'light' | 'dark'>(() => readStorage('diko_theme', 'light'));
   const [a11y, setA11y] = useState<boolean>(() => readStorage('diko_a11y', false));
   const [search, setSearch] = useState('');
@@ -233,15 +250,35 @@ export function App() {
   const [reviewText, setReviewText] = useState('');
   const [editReviewId, setEditReviewId] = useState<string | null>(null);
   const [reviews, setReviews] = useState<Record<number, Review[]>>(() => readStorage('diko_reviews', {}));
+  const [checkout, setCheckout] = useState<CheckoutFields>(emptyCheckout);
+  const [checkoutErrors, setCheckoutErrors] = useState<Partial<Record<keyof CheckoutFields, boolean>>>({});
+  const [promoInput, setPromoInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<Promo | null>(null);
+  const [orderDone, setOrderDone] = useState<{ no: string; bonus: number } | null>(null);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authForm, setAuthForm] = useState({ name: '', email: '', password: '', password2: '' });
+  const [authErrors, setAuthErrors] = useState<Partial<Record<'name' | 'email' | 'password' | 'password2', string>>>({});
+  const [profileForm, setProfileForm] = useState<User | null>(() => readStorage('diko_user', null));
+  const [game, setGame] = useState<GameState>(emptyGame);
   const [entered, setEntered] = useState(true);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastId = useRef(0);
   const enterTimer = useRef<number | null>(null);
+  const gameTimer = useRef<number | null>(null);
+  const gameLastTick = useRef(0);
+  const gameElapsed = useRef(0);
+  const gameSpawn = useRef(0);
 
   useEffect(() => {
     if (!localStorage.getItem('diko_seeded')) {
-      writeStorage('diko_users', [{ name: 'Любовь Шейда', email: 'liubovsheyda@gmail.com', password: 'Teacher_2026' }]);
+      writeStorage('diko_users', [demoUser]);
       localStorage.setItem('diko_seeded', '1');
+      return;
+    }
+
+    const users = readStorage<StoredUser[]>('diko_users', []);
+    if (!users.some((item) => item.email === demoUser.email)) {
+      writeStorage('diko_users', [demoUser, ...users]);
     }
   }, []);
 
@@ -255,6 +292,7 @@ export function App() {
   useEffect(() => {
     return () => {
       if (enterTimer.current) window.clearTimeout(enterTimer.current);
+      if (gameTimer.current) window.clearInterval(gameTimer.current);
     };
   }, []);
 
@@ -263,6 +301,24 @@ export function App() {
   const catalogProducts = useMemo(() => sortedProducts(matched, sort), [matched, sort]);
   const shownProducts = catalogProducts.slice(0, page * 9);
   const currentProduct = route.name === 'product' ? products.find((product) => product.id === route.id) : undefined;
+  const cartItems = useMemo(
+    () =>
+      cart
+        .map((line) => ({ line, product: products.find((product) => product.id === line.id) }))
+        .filter((item): item is { line: CartLine; product: Product } => Boolean(item.product)),
+    [cart],
+  );
+  const subtotal = cartItems.reduce((sum, item) => sum + item.product.price * item.line.qty, 0);
+  const discount = appliedPromo
+    ? Math.min(
+        subtotal,
+        appliedPromo.type === 'percent' ? Math.round((subtotal * appliedPromo.value) / 100) : appliedPromo.value,
+      )
+    : 0;
+  const afterDiscount = subtotal - discount;
+  const delivery = afterDiscount >= 3000 || afterDiscount === 0 ? 0 : 350;
+  const orderTotal = afterDiscount + delivery;
+  const earnBonus = Math.round(orderTotal / 100);
 
   const showToast = (msg: string, icon = '✓') => {
     const id = ++toastId.current;
@@ -412,18 +468,332 @@ export function App() {
   };
 
   const deleteReview = (id: string) => {
-    if (!currentProduct) return;
     setReviews((items) => {
-      const next = { ...items, [currentProduct.id]: (items[currentProduct.id] ?? []).filter((review) => review.id !== id) };
+      const targetId = currentProduct?.id ?? Number(Object.keys(items).find((productId) => (items[Number(productId)] ?? []).some((review) => review.id === id)));
+      if (!targetId) return items;
+      const next = { ...items, [targetId]: (items[targetId] ?? []).filter((review) => review.id !== id) };
       writeStorage('diko_reviews', next);
       return next;
     });
     showToast('Отзыв удалён', '🗑️');
   };
 
+  const goCheckout = () => {
+    setOrderDone(null);
+    nav({ name: 'checkout' });
+  };
+
+  const setCheckoutField = <K extends keyof CheckoutFields>(key: K, value: CheckoutFields[K]) => {
+    setCheckout((current) => ({ ...current, [key]: value }));
+    setCheckoutErrors((current) => ({ ...current, [key]: false }));
+  };
+
+  const applyPromo = () => {
+    const code = promoInput.trim().toUpperCase();
+    if (!code) return;
+
+    const promo = promoCatalog[code] ?? promos.find((item) => item.code === code) ?? null;
+    if (!promo) {
+      showToast('Промокод не найден', '✕');
+      return;
+    }
+
+    setAppliedPromo(promo);
+    showToast(`Промокод применён: ${promo.type === 'percent' ? `−${promo.value}%` : `−${fmt(promo.value)}`}`, '🎟️');
+  };
+
+  const placeOrder = () => {
+    if (!user) {
+      showToast('Сначала войдите в аккаунт', '🔒');
+      setAuthMode('login');
+      nav({ name: 'auth' });
+      return;
+    }
+
+    const errors: Partial<Record<keyof CheckoutFields, boolean>> = {};
+    if (!checkout.name.trim()) errors.name = true;
+    if (!/^[\d\s+\-()]{6,}$/.test(checkout.phone.trim())) errors.phone = true;
+    if (checkout.address.trim().length < 6) errors.address = true;
+
+    if (Object.keys(errors).length) {
+      setCheckoutErrors(errors);
+      showToast('Проверьте поля доставки', '⚠️');
+      return;
+    }
+
+    const no = `#${Math.floor(100000 + Math.random() * 899999)}`;
+    const bonus = earnBonus;
+    const order: Order = {
+      no,
+      date: new Date().toLocaleDateString('ru-RU'),
+      total: orderTotal,
+      bonus,
+      status: 'В обработке',
+      items: cartItems.map(({ line, product }) => ({
+        id: product.id,
+        title: product.title,
+        emoji: product.emoji,
+        qty: line.qty,
+        price: product.price,
+      })),
+    };
+
+    const nextOrders = [order, ...orders];
+    const nextBonuses = bonuses + bonus;
+    const nextPromos = appliedPromo ? promos.filter((item) => item.code !== appliedPromo.code) : promos;
+
+    setOrders(nextOrders);
+    setBonuses(nextBonuses);
+    setPromos(nextPromos);
+    setCart([]);
+    setAppliedPromo(null);
+    setPromoInput('');
+    setCheckout(emptyCheckout);
+    setOrderDone({ no, bonus });
+    writeStorage('diko_orders', nextOrders);
+    writeStorage('diko_bonuses', nextBonuses);
+    writeStorage('diko_promos', nextPromos);
+    writeStorage('diko_cart', []);
+    showToast('Заказ оформлен!', '🎉');
+  };
+
+  const openAuth = (mode: 'login' | 'register') => {
+    setAuthMode(mode);
+    setAuthForm({ name: '', email: '', password: '', password2: '' });
+    setAuthErrors({});
+    nav({ name: 'auth' });
+  };
+
+  const setAuthField = (key: keyof typeof authForm, value: string) => {
+    setAuthForm((current) => ({ ...current, [key]: value }));
+    setAuthErrors((current) => ({ ...current, [key]: undefined }));
+  };
+
+  const loginUser = (storedUser: StoredUser) => {
+    const publicUser: User = {
+      name: storedUser.name,
+      email: storedUser.email,
+      phone: storedUser.phone ?? '',
+      city: storedUser.city ?? '',
+    };
+    const nextToken = `diko.${btoa(unescape(encodeURIComponent(storedUser.email))).replace(/=/g, '')}.${Date.now().toString(36)}`;
+    setUser(publicUser);
+    setToken(nextToken);
+    setProfileForm(publicUser);
+    writeStorage('diko_user', publicUser);
+    writeStorage('diko_token', nextToken);
+    nav({ name: 'account', tab: 'profile' });
+  };
+
+  const submitAuth = () => {
+    const register = authMode === 'register';
+    const errors: Partial<Record<'name' | 'email' | 'password' | 'password2', string>> = {};
+    const email = authForm.email.trim().toLowerCase();
+
+    if (register && authForm.name.trim().length < 2) errors.name = 'Введите имя (мин. 2 символа)';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = 'Некорректный e-mail';
+    if (authForm.password.length < 6) errors.password = 'Минимум 6 символов';
+    if (register && authForm.password2 !== authForm.password) errors.password2 = 'Пароли не совпадают';
+
+    const users = readStorage<StoredUser[]>('diko_users', []);
+    if (register && !errors.email && users.some((item) => item.email.toLowerCase() === email)) {
+      errors.email = 'Этот e-mail уже зарегистрирован';
+    }
+
+    if (Object.keys(errors).length) {
+      setAuthErrors(errors);
+      return;
+    }
+
+    if (register) {
+      const nextUser: StoredUser = {
+        name: authForm.name.trim(),
+        email,
+        password: authForm.password,
+      };
+      writeStorage('diko_users', [...users, nextUser]);
+      loginUser(nextUser);
+      showToast('Аккаунт создан. Добро пожаловать!', '🎉');
+      return;
+    }
+
+    const found = users.find((item) => item.email.toLowerCase() === email && item.password === authForm.password);
+    if (!found) {
+      setAuthErrors({ password: 'Неверный e-mail или пароль' });
+      return;
+    }
+
+    loginUser(found);
+    showToast('Вы вошли. Рады видеть!', '👋');
+  };
+
+  const logout = () => {
+    localStorage.removeItem('diko_user');
+    localStorage.removeItem('diko_token');
+    setUser(null);
+    setToken(null);
+    setProfileForm(null);
+    showToast('Вы вышли из аккаунта', '↪');
+    nav({ name: 'home' });
+  };
+
+  const setProfileField = (key: keyof User, value: string) => {
+    setProfileForm((current) => ({ ...(current ?? user ?? { name: '' }), [key]: value }));
+  };
+
+  const saveProfile = () => {
+    if (!profileForm || !user?.email) return;
+    const nextUser = { ...user, ...profileForm };
+    const users = readStorage<StoredUser[]>('diko_users', []);
+    const nextUsers = users.map((item) => (item.email.toLowerCase() === user.email?.toLowerCase() ? { ...item, ...profileForm } : item));
+    setUser(nextUser);
+    setProfileForm(nextUser);
+    writeStorage('diko_user', nextUser);
+    writeStorage('diko_users', nextUsers);
+    showToast('Профиль сохранён', '✓');
+  };
+
+  const stopGameLoop = () => {
+    if (gameTimer.current) window.clearInterval(gameTimer.current);
+    gameTimer.current = null;
+  };
+
+  const startGame = () => {
+    stopGameLoop();
+    setGame({ ...emptyGame, toys: [], result: null });
+    nav({ name: 'game' });
+  };
+
+  const createGameResult = (score: number) => {
+    let promo: Promo | null = null;
+    let title = 'Игра окончена';
+    let emoji = '🐾';
+
+    if (score >= 45) {
+      promo = { code: 'DIKOMEGA20', type: 'percent', value: 20 };
+      title = 'Дикий рекорд!';
+      emoji = '🏆';
+    } else if (score >= 28) {
+      promo = { code: 'DIKOGAME15', type: 'percent', value: 15 };
+      title = 'Отличный улов!';
+      emoji = '🎉';
+    } else if (score >= 14) {
+      promo = { code: 'DIKOPLAY10', type: 'percent', value: 10 };
+      title = 'Неплохо!';
+      emoji = '😺';
+    }
+
+    return {
+      score,
+      bonus: score,
+      promo,
+      title,
+      emoji,
+      text: promo
+        ? `Вы набрали ${score} очков и заработали ${score} бонусов. Промокод уже в личном кабинете.`
+        : `Вы набрали ${score} очков и заработали ${score} бонусов. Наберите 14+ очков, чтобы выиграть промокод.`,
+    };
+  };
+
+  const finishRound = (score: number) => {
+    stopGameLoop();
+    const result = createGameResult(score);
+    const nextBonuses = bonuses + result.bonus;
+    const nextPromos = result.promo && !promos.some((item) => item.code === result.promo?.code) ? [...promos, result.promo] : promos;
+
+    setBonuses(nextBonuses);
+    setPromos(nextPromos);
+    writeStorage('diko_bonuses', nextBonuses);
+    writeStorage('diko_promos', nextPromos);
+    if (result.bonus > 0) showToast(`+${result.bonus} бонусов начислено`, '🦴');
+    return result;
+  };
+
+  const gameTick = () => {
+    const now = performance.now();
+    const dt = Math.min(50, now - gameLastTick.current) / 1000;
+    gameLastTick.current = now;
+    gameElapsed.current += dt;
+    gameSpawn.current += dt;
+
+    setGame((current) => {
+      if (current.phase !== 'play') return current;
+
+      let score = current.score;
+      let toys = current.toys.map((toy) => ({ ...toy, y: toy.y + toy.vy * dt }));
+      const kept = [];
+
+      for (const toy of toys) {
+        if (toy.y >= 86 && toy.y <= 99 && Math.abs(toy.x - current.basket) < 10) {
+          score = toy.type === 'bomb' ? Math.max(0, score - 5) : score + toy.pts;
+          continue;
+        }
+        if (toy.y <= 104) kept.push(toy);
+      }
+
+      toys = kept;
+      if (gameSpawn.current > 0.62) {
+        gameSpawn.current = 0;
+        const roll = Math.random();
+        const base =
+          roll < 0.12
+            ? { type: 'bomb' as const, emoji: '💣', pts: 0, size: '34px' }
+            : roll < 0.42
+              ? { type: 'ball' as const, emoji: '🎾', pts: 1, size: '32px' }
+              : roll < 0.74
+                ? { type: 'bone' as const, emoji: '🦴', pts: 2, size: '34px' }
+                : { type: 'worm' as const, emoji: '🐛', pts: 3, size: '30px' };
+        toys.push({
+          id: Math.random(),
+          x: 8 + Math.random() * 84,
+          y: -4,
+          vy: 26 + Math.random() * 16 + gameElapsed.current * 0.6,
+          ...base,
+        });
+      }
+
+      const time = Math.max(0, Math.ceil(30 - gameElapsed.current));
+      if (gameElapsed.current >= 30) {
+        return { ...current, toys: [], score, time: 0, phase: 'over', result: finishRound(score) };
+      }
+
+      return { ...current, toys, score, time };
+    });
+  };
+
+  const startRound = () => {
+    stopGameLoop();
+    gameElapsed.current = 0;
+    gameSpawn.current = 0;
+    gameLastTick.current = performance.now();
+    setGame({ phase: 'play', score: 0, time: 30, toys: [], basket: 50, result: null });
+    gameTimer.current = window.setInterval(gameTick, 1000 / 60);
+  };
+
+  useEffect(() => {
+    if (route.name !== 'game' || game.phase !== 'play') return undefined;
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        setGame((current) => ({ ...current, basket: Math.max(6, current.basket - 6) }));
+      }
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        setGame((current) => ({ ...current, basket: Math.min(94, current.basket + 6) }));
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [route.name, game.phase]);
+
   const favoriteProducts = products.filter((product) => favorites.includes(product.id));
   const comparedProducts = products.filter((product) => compare.includes(product.id));
   const recentProducts = recent.map((id) => products.find((product) => product.id === id)).filter(Boolean) as Product[];
+  const myReviews = Object.entries(reviews).flatMap(([productId, list]) => {
+    const product = products.find((item) => item.id === Number(productId));
+    if (!product) return [];
+    return list.filter((review) => review.mine).map((review) => ({ ...review, product }));
+  });
 
   const appActions = {
     openProduct,
@@ -469,8 +839,8 @@ export function App() {
         onCart={() => nav({ name: 'cart' })}
         onFav={() => nav({ name: 'favorites' })}
         onCompare={() => nav({ name: 'compare' })}
-        onAccount={() => nav(user ? { name: 'account' } : { name: 'auth' })}
-        onGame={() => nav({ name: 'game' })}
+        onAccount={() => (user ? nav({ name: 'account', tab: 'profile' }) : openAuth('login'))}
+        onGame={startGame}
       />
 
       <main className={entered ? 'route route--entered' : 'route'}>
@@ -492,7 +862,7 @@ export function App() {
               setPage(1);
               nav({ name: 'catalog' });
             }}
-            onGame={() => nav({ name: 'game' })}
+            onGame={startGame}
             actions={appActions}
           />
         )}
@@ -555,18 +925,108 @@ export function App() {
           />
         )}
         {route.name === 'cart' && (
-          <CartScreen cart={cart} onQty={setQty} onRemove={removeFromCart} onCatalog={goCatalog} onCheckout={() => nav({ name: 'checkout' })} />
+          <CartScreen
+            items={cartItems}
+            cartCount={cartCount}
+            subtotal={subtotal}
+            discount={discount}
+            delivery={delivery}
+            total={orderTotal}
+            earnBonus={earnBonus}
+            onQty={setQty}
+            onRemove={removeFromCart}
+            onCatalog={goCatalog}
+            onCheckout={goCheckout}
+            onOpen={openProduct}
+          />
         )}
         {route.name === 'favorites' && (
-          <ProductCollectionScreen title="Избранное" empty="В избранном пока нет товаров." products={favoriteProducts} favorites={favorites} compare={compare} onCatalog={goCatalog} actions={appActions} />
+          <ProductCollectionScreen
+            title="Избранное"
+            empty="В избранном пока нет товаров."
+            products={favoriteProducts}
+            favorites={favorites}
+            compare={compare}
+            onCatalog={goCatalog}
+            onAddAll={() => favoriteProducts.forEach((product) => addToCart(product.id))}
+            actions={appActions}
+          />
         )}
         {route.name === 'compare' && (
           <CompareScreen products={comparedProducts} favorites={favorites} compare={compare} onCatalog={goCatalog} actions={appActions} />
         )}
-        {route.name === 'auth' && <PlaceholderScreen icon={<UserRound size={42} />} title="Вход" text="Аккаунт преподавателя подготовлен в localStorage." />}
-        {route.name === 'account' && <PlaceholderScreen icon={<UserRound size={42} />} title="Профиль" text="Личный кабинет подключится к сохранённым заказам, бонусам и промокодам." />}
-        {route.name === 'game' && <PlaceholderScreen icon={<Gamepad2 size={42} />} title="Игра" text="Тут будет акционная игра" />}
-        {route.name === 'checkout' && <PlaceholderScreen icon={<ShoppingCart size={42} />} title="Оформление" text="Корзина сохраняется локально, форма заказа собрана отдельным экраном." />}
+        {route.name === 'auth' && (
+          <AuthScreen
+            mode={authMode}
+            form={authForm}
+            errors={authErrors}
+            onMode={setAuthMode}
+            onField={setAuthField}
+            onSubmit={submitAuth}
+          />
+        )}
+        {route.name === 'account' && user && (
+          <AccountScreen
+            user={user}
+            tab={route.tab ?? 'profile'}
+            bonuses={bonuses}
+            promos={promos}
+            orders={orders}
+            reviews={myReviews}
+            profileForm={profileForm ?? user}
+            onTab={(tab) => nav({ name: 'account', tab })}
+            onLogout={logout}
+            onProfileField={setProfileField}
+            onSaveProfile={saveProfile}
+            onGame={startGame}
+            onOpenProduct={openProduct}
+            onDeleteReview={deleteReview}
+          />
+        )}
+        {route.name === 'account' && !user && (
+          <AuthScreen
+            mode={authMode}
+            form={authForm}
+            errors={authErrors}
+            onMode={setAuthMode}
+            onField={setAuthField}
+            onSubmit={submitAuth}
+          />
+        )}
+        {route.name === 'game' && (
+          <GameScreen
+            game={game}
+            bonuses={bonuses}
+            promoCount={promos.length}
+            onStart={startRound}
+            onCatalog={goCatalog}
+            onBasket={(basket) => setGame((current) => (current.phase === 'play' ? { ...current, basket } : current))}
+          />
+        )}
+        {route.name === 'checkout' && (
+          <CheckoutScreen
+            cartEmpty={cartItems.length === 0}
+            user={user}
+            checkout={checkout}
+            errors={checkoutErrors}
+            subtotal={subtotal}
+            discount={discount}
+            delivery={delivery}
+            total={orderTotal}
+            promos={promos}
+            promoInput={promoInput}
+            appliedPromo={appliedPromo}
+            orderDone={orderDone}
+            onCart={() => nav({ name: 'cart' })}
+            onCatalog={goCatalog}
+            onAuth={() => openAuth('login')}
+            onOrders={() => nav({ name: 'account', tab: 'orders' })}
+            onField={setCheckoutField}
+            onPromoInput={setPromoInput}
+            onApplyPromo={applyPromo}
+            onPlaceOrder={placeOrder}
+          />
+        )}
       </main>
 
       <Footer />
@@ -696,8 +1156,12 @@ function HomeScreen(props: {
                 {promo.cta}
               </button>
             </div>
-            <div className="hero__visual" style={{ background: promo.photoBg }}>
-              {promo.emoji}
+            <div className="hero__visual">
+              {promo.image ? (
+                <img src={promo.image} alt={promo.imageAlt} draggable={false} />
+              ) : (
+                <span>{promo.emoji}</span>
+              )}
             </div>
           </div>
         ))}
@@ -1121,11 +1585,21 @@ function ProductScreen(props: {
   );
 }
 
-function CartScreen(props: { cart: CartLine[]; onQty: (id: number, qty: number) => void; onRemove: (id: number) => void; onCatalog: () => void; onCheckout: () => void }) {
-  const lines = props.cart.map((line) => ({ line, product: products.find((product) => product.id === line.id) })).filter((item): item is { line: CartLine; product: Product } => Boolean(item.product));
-  const total = lines.reduce((sum, item) => sum + item.product.price * item.line.qty, 0);
-
-  if (!lines.length) {
+function CartScreen(props: {
+  items: Array<{ line: CartLine; product: Product }>;
+  cartCount: number;
+  subtotal: number;
+  discount: number;
+  delivery: number;
+  total: number;
+  earnBonus: number;
+  onQty: (id: number, qty: number) => void;
+  onRemove: (id: number) => void;
+  onCatalog: () => void;
+  onCheckout: () => void;
+  onOpen: (id: number) => void;
+}) {
+  if (!props.items.length) {
     return <EmptyState icon={<ShoppingCart size={48} />} title="Корзина пуста" text="Добавьте товары из каталога." action="В каталог" onAction={props.onCatalog} />;
   }
 
@@ -1134,13 +1608,13 @@ function CartScreen(props: { cart: CartLine[]; onQty: (id: number, qty: number) 
       <h1 className="page-title">Корзина</h1>
       <div className="cart-layout">
         <div className="cart-lines">
-          {lines.map(({ line, product }) => (
+          {props.items.map(({ line, product }) => (
             <article className="cart-line" key={line.id}>
-              <div className="cart-line__visual">{product.emoji}</div>
+              <button className="cart-line__visual" onClick={() => props.onOpen(product.id)}>{product.emoji}</button>
               <div>
                 <p className="muted small">{product.brand}</p>
-                <h2>{product.title}</h2>
-                <strong>{fmt(product.price)}</strong>
+                <button className="cart-line__title" onClick={() => props.onOpen(product.id)}>{product.title}</button>
+                <p className="muted small">{fmt(product.price)} / шт</p>
               </div>
               <div className="qty-stepper">
                 <button onClick={() => props.onQty(line.id, line.qty - 1)}>
@@ -1151,14 +1625,19 @@ function CartScreen(props: { cart: CartLine[]; onQty: (id: number, qty: number) 
                   <Plus size={18} />
                 </button>
               </div>
+              <strong className="cart-line__sum">{fmt(product.price * line.qty)}</strong>
               <button className="text-button" onClick={() => props.onRemove(line.id)}>Удалить</button>
             </article>
           ))}
         </div>
         <aside className="cart-summary">
-          <p>Итого</p>
-          <strong>{fmt(total)}</strong>
+          <h2>Итого</h2>
+          <div className="summary-row"><span>Товары ({props.cartCount})</span><strong>{fmt(props.subtotal)}</strong></div>
+          {props.discount > 0 && <div className="summary-row summary-row--green"><span>Скидка по промокоду</span><strong>−{fmt(props.discount)}</strong></div>}
+          <div className="summary-row"><span>Доставка</span><strong>{props.delivery === 0 ? 'Бесплатно' : fmt(props.delivery)}</strong></div>
+          <div className="summary-total"><span>К оплате</span><strong>{fmt(props.total)}</strong></div>
           <button onClick={props.onCheckout}>Оформить</button>
+          <p className="summary-bonus">Бонусов начислим: +{props.earnBonus} 🦴</p>
         </aside>
       </div>
     </section>
@@ -1172,6 +1651,7 @@ function ProductCollectionScreen(props: {
   favorites: number[];
   compare: number[];
   onCatalog: () => void;
+  onAddAll?: () => void;
   actions: ProductActions;
 }) {
   if (!props.products.length) {
@@ -1180,7 +1660,10 @@ function ProductCollectionScreen(props: {
 
   return (
     <section className="page">
-      <h1 className="page-title">{props.title}</h1>
+      <div className="collection-head">
+        <h1 className="page-title">{props.title}</h1>
+        {props.onAddAll && <button onClick={props.onAddAll}>Всё в корзину</button>}
+      </div>
       <ProductGrid products={props.products} favorites={props.favorites} compare={props.compare} actions={props.actions} />
     </section>
   );
@@ -1210,6 +1693,409 @@ function CompareScreen(props: { products: Product[]; favorites: number[]; compar
             ))}
           </div>
         ))}
+      </div>
+    </section>
+  );
+}
+
+function CheckoutScreen(props: {
+  cartEmpty: boolean;
+  user: User | null;
+  checkout: CheckoutFields;
+  errors: Partial<Record<keyof CheckoutFields, boolean>>;
+  subtotal: number;
+  discount: number;
+  delivery: number;
+  total: number;
+  promos: Promo[];
+  promoInput: string;
+  appliedPromo: Promo | null;
+  orderDone: { no: string; bonus: number } | null;
+  onCart: () => void;
+  onCatalog: () => void;
+  onAuth: () => void;
+  onOrders: () => void;
+  onField: <K extends keyof CheckoutFields>(key: K, value: CheckoutFields[K]) => void;
+  onPromoInput: (value: string) => void;
+  onApplyPromo: () => void;
+  onPlaceOrder: () => void;
+}) {
+  if (props.orderDone) {
+    return (
+      <section className="page page--narrow">
+        <div className="success-panel">
+          <div className="success-panel__emoji">🎉</div>
+          <h1>Заказ {props.orderDone.no} оформлен!</h1>
+          <p>Мы свяжемся с вами для подтверждения. Начислено <strong>+{props.orderDone.bonus} бонусов 🦴</strong> на ваш счёт.</p>
+          <div className="success-panel__actions">
+            <button onClick={props.onOrders}>Мои заказы</button>
+            <button onClick={props.onCatalog}>Продолжить покупки</button>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (props.cartEmpty) {
+    return <EmptyState icon={<ShoppingCart size={48} />} title="Корзина пуста" text="Оформление доступно после добавления товаров." action="В каталог" onAction={props.onCatalog} />;
+  }
+
+  const payOptions: Array<[CheckoutFields['pay'], string]> = [
+    ['card', 'Картой'],
+    ['cash', 'Наличными'],
+    ['split', 'Частями'],
+  ];
+
+  return (
+    <section className="page page--checkout">
+      <div className="breadcrumb">
+        <button onClick={props.onCart}>Корзина</button>
+        <span>/ Оформление</span>
+      </div>
+      <h1 className="page-title">Оформление заказа</h1>
+
+      {!props.user && (
+        <div className="auth-notice">
+          <strong>Войдите в аккаунт, чтобы оформить заказ и копить бонусы.</strong>
+          <button onClick={props.onAuth}>Войти</button>
+        </div>
+      )}
+
+      <div className="checkout-layout">
+        <div className="checkout-form">
+          <h2>Получатель и доставка</h2>
+          <label>
+            <span>Имя и фамилия</span>
+            <input
+              value={props.checkout.name}
+              onChange={(event) => props.onField('name', event.target.value)}
+              className={props.errors.name ? 'input-error' : ''}
+            />
+          </label>
+          <label>
+            <span>Телефон</span>
+            <input
+              value={props.checkout.phone}
+              onChange={(event) => props.onField('phone', event.target.value)}
+              placeholder="+7 ___ ___ __ __"
+              className={props.errors.phone ? 'input-error' : ''}
+            />
+          </label>
+          <label>
+            <span>Адрес доставки</span>
+            <input
+              value={props.checkout.address}
+              onChange={(event) => props.onField('address', event.target.value)}
+              placeholder="Город, улица, дом, квартира"
+              className={props.errors.address ? 'input-error' : ''}
+            />
+          </label>
+          <div>
+            <span className="field-label">Способ оплаты</span>
+            <div className="pay-options">
+              {payOptions.map(([value, label]) => (
+                <button
+                  key={value}
+                  className={props.checkout.pay === value ? 'pay-option pay-option--active' : 'pay-option'}
+                  onClick={() => props.onField('pay', value)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <aside className="cart-summary">
+          <h2>Ваш заказ</h2>
+          <div className="summary-row"><span>Товары</span><strong>{fmt(props.subtotal)}</strong></div>
+          <div className="promo-row">
+            <input value={props.promoInput} onChange={(event) => props.onPromoInput(event.target.value.toUpperCase())} placeholder="Промокод" />
+            <button onClick={props.onApplyPromo}>ОК</button>
+          </div>
+          {props.discount > 0 && props.appliedPromo && <p className="promo-applied">✓ Промокод {props.appliedPromo.code} (−{fmt(props.discount)})</p>}
+          {props.promos.length > 0 && <p className="promo-hint">Ваши промокоды из игры: {props.promos.map((promo) => promo.code).join(', ')}</p>}
+          <div className="summary-row"><span>Доставка</span><strong>{props.delivery === 0 ? 'Бесплатно' : fmt(props.delivery)}</strong></div>
+          <div className="summary-total"><span>К оплате</span><strong>{fmt(props.total)}</strong></div>
+          <button onClick={props.onPlaceOrder}>Подтвердить заказ</button>
+        </aside>
+      </div>
+    </section>
+  );
+}
+
+function AuthScreen(props: {
+  mode: 'login' | 'register';
+  form: { name: string; email: string; password: string; password2: string };
+  errors: Partial<Record<'name' | 'email' | 'password' | 'password2', string>>;
+  onMode: (mode: 'login' | 'register') => void;
+  onField: (key: 'name' | 'email' | 'password' | 'password2', value: string) => void;
+  onSubmit: () => void;
+}) {
+  const register = props.mode === 'register';
+
+  return (
+    <section className="page page--auth">
+      <div className="auth-card">
+        <div className="auth-tabs">
+          <button className={!register ? 'active' : ''} onClick={() => props.onMode('login')}>Вход</button>
+          <button className={register ? 'active' : ''} onClick={() => props.onMode('register')}>Регистрация</button>
+        </div>
+        <h1>{register ? 'Создать аккаунт' : 'С возвращением!'}</h1>
+        <p>{register ? 'Регистрация займёт меньше минуты' : 'Войдите, чтобы видеть заказы и бонусы'}</p>
+        <div className="auth-fields">
+          {register && (
+            <FieldError error={props.errors.name}>
+              <input value={props.form.name} onChange={(event) => props.onField('name', event.target.value)} placeholder="Имя и фамилия" />
+            </FieldError>
+          )}
+          <FieldError error={props.errors.email}>
+            <input value={props.form.email} onChange={(event) => props.onField('email', event.target.value)} placeholder="E-mail" />
+          </FieldError>
+          <FieldError error={props.errors.password}>
+            <input type="password" value={props.form.password} onChange={(event) => props.onField('password', event.target.value)} placeholder="Пароль" />
+          </FieldError>
+          {register && (
+            <FieldError error={props.errors.password2}>
+              <input type="password" value={props.form.password2} onChange={(event) => props.onField('password2', event.target.value)} placeholder="Повторите пароль" />
+            </FieldError>
+          )}
+        </div>
+        <button className="auth-submit" onClick={props.onSubmit}>{register ? 'Зарегистрироваться' : 'Войти'}</button>
+        {!register && (
+          <div className="demo-access">
+            <strong>Демо-доступ для преподавателя:</strong>
+            <span>liubovsheyda@gmail.com / Teacher_2026</span>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function FieldError(props: { error?: string; children: ReactNode }) {
+  return (
+    <label className={props.error ? 'field-error has-error' : 'field-error'}>
+      {props.children}
+      {props.error && <small>{props.error}</small>}
+    </label>
+  );
+}
+
+function AccountScreen(props: {
+  user: User;
+  tab: 'profile' | 'orders' | 'bonuses' | 'reviews';
+  bonuses: number;
+  promos: Promo[];
+  orders: Order[];
+  reviews: Array<Review & { product: Product }>;
+  profileForm: User;
+  onTab: (tab: 'profile' | 'orders' | 'bonuses' | 'reviews') => void;
+  onLogout: () => void;
+  onProfileField: (key: keyof User, value: string) => void;
+  onSaveProfile: () => void;
+  onGame: () => void;
+  onOpenProduct: (id: number) => void;
+  onDeleteReview: (id: string) => void;
+}) {
+  const tabs: Array<['profile' | 'orders' | 'bonuses' | 'reviews', string, string, number]> = [
+    ['profile', 'Профиль', '👤', 0],
+    ['orders', 'Заказы', '📦', props.orders.length],
+    ['bonuses', 'Бонусы', '🎟️', props.promos.length],
+    ['reviews', 'Отзывы', '★', props.reviews.length],
+  ];
+
+  return (
+    <section className="page">
+      <div className="account-layout">
+        <aside className="account-sidebar">
+          <div className="account-user">
+            <span>{props.user.name.charAt(0).toUpperCase()}</span>
+            <div>
+              <strong>{props.user.name}</strong>
+              <small>{props.user.email}</small>
+            </div>
+          </div>
+          <div className="bonus-card">
+            <span>Бонусный счёт</span>
+            <strong>{props.bonuses} 🦴</strong>
+          </div>
+          <div className="account-tabs">
+            {tabs.map(([id, label, icon, count]) => (
+              <button key={id} className={props.tab === id ? 'active' : ''} onClick={() => props.onTab(id)}>
+                <span>{icon}</span>
+                <strong>{label}</strong>
+                {count > 0 && <em>{count}</em>}
+              </button>
+            ))}
+          </div>
+          <button className="logout-button" onClick={props.onLogout}>↪ Выйти</button>
+        </aside>
+
+        <div className="account-content">
+          {props.tab === 'profile' && (
+            <div className="account-panel">
+              <h1>Профиль</h1>
+              <div className="profile-grid">
+                <label><span>Имя и фамилия</span><input value={props.profileForm.name ?? ''} onChange={(event) => props.onProfileField('name', event.target.value)} /></label>
+                <label><span>E-mail</span><input value={props.profileForm.email ?? ''} onChange={(event) => props.onProfileField('email', event.target.value)} /></label>
+                <label><span>Телефон</span><input value={props.profileForm.phone ?? ''} onChange={(event) => props.onProfileField('phone', event.target.value)} placeholder="+7 ___ ___ __ __" /></label>
+                <label><span>Город</span><input value={props.profileForm.city ?? ''} onChange={(event) => props.onProfileField('city', event.target.value)} placeholder="Город" /></label>
+              </div>
+              <button className="account-primary" onClick={props.onSaveProfile}>Сохранить</button>
+            </div>
+          )}
+
+          {props.tab === 'orders' && (
+            <div>
+              <h1 className="account-title">Мои заказы</h1>
+              {props.orders.length === 0 && <div className="empty-inline">Заказов пока нет.</div>}
+              <div className="order-list">
+                {props.orders.map((order) => (
+                  <article className="order-card" key={order.no}>
+                    <div className="order-card__head">
+                      <strong>Заказ {order.no}</strong>
+                      <span>{order.date}</span>
+                      <em>{order.status}</em>
+                    </div>
+                    <div className="order-items">
+                      {order.items.map((item) => (
+                        <button key={`${order.no}-${item.id}`} onClick={() => props.onOpenProduct(item.id)}>
+                          <span>{item.emoji}</span>
+                          {item.title} · {item.qty} шт
+                        </button>
+                      ))}
+                    </div>
+                    <div className="order-card__total">
+                      <span>+{order.bonus} бонусов 🦴</span>
+                      <strong>{fmt(order.total)}</strong>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {props.tab === 'bonuses' && (
+            <div>
+              <h1 className="account-title">Бонусы и промокоды</h1>
+              <div className="bonus-hero">
+                <div>
+                  <span>Доступно бонусов</span>
+                  <strong>{props.bonuses} 🦴</strong>
+                  <small>1 бонус = 1 ₽ при оплате</small>
+                </div>
+                <button onClick={props.onGame}>🎮 Заработать в игре</button>
+              </div>
+              <h2 className="subhead">Мои промокоды</h2>
+              {props.promos.length === 0 && <div className="empty-inline">Промокодов нет. Сыграйте в игру «Поймай игрушки» и выиграйте промокод!</div>}
+              <div className="promo-grid">
+                {props.promos.map((promo) => (
+                  <div className="promo-ticket" key={promo.code}>
+                    <div>
+                      <strong>{promo.code}</strong>
+                      <span>{promo.type === 'percent' ? `Скидка ${promo.value}% на заказ` : `Скидка ${fmt(promo.value)} на заказ`}</span>
+                    </div>
+                    <em>{promo.type === 'percent' ? `−${promo.value}%` : `−${fmt(promo.value)}`}</em>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {props.tab === 'reviews' && (
+            <div>
+              <h1 className="account-title">Мои отзывы</h1>
+              {props.reviews.length === 0 && <div className="empty-inline">Вы ещё не оставляли отзывов. Откройте любой товар и поделитесь мнением.</div>}
+              <div className="reviews-list">
+                {props.reviews.map((review) => (
+                  <article className="review-item" key={review.id}>
+                    <div className="review-item__head">
+                      <button className="review-product-link" onClick={() => props.onOpenProduct(review.product.id)}>
+                        <span>{review.product.emoji}</span>
+                        <div>
+                          <strong>{review.product.title}</strong>
+                          <small>{review.date}</small>
+                        </div>
+                      </button>
+                      <div className="review-stars">{'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}</div>
+                    </div>
+                    <p>{review.text}</p>
+                    <div className="review-actions">
+                      <button onClick={() => props.onOpenProduct(review.product.id)}>К товару</button>
+                      <button onClick={() => props.onDeleteReview(review.id)}>Удалить</button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function GameScreen(props: {
+  game: GameState;
+  bonuses: number;
+  promoCount: number;
+  onStart: () => void;
+  onCatalog: () => void;
+  onBasket: (basket: number) => void;
+}) {
+  return (
+    <section className="page page--game">
+      <div className="game-heading">
+        <h1>Поймай игрушки 🎮</h1>
+        <p>Лови падающие игрушки в корзинку. Двигай корзину мышкой или стрелками ← →.</p>
+      </div>
+      <div
+        className="game-field"
+        onMouseMove={(event) => {
+          if (props.game.phase !== 'play') return;
+          const rect = event.currentTarget.getBoundingClientRect();
+          props.onBasket(Math.max(6, Math.min(94, ((event.clientX - rect.left) / rect.width) * 100)));
+        }}
+      >
+        <div className="game-hud">
+          <span>Очки: {props.game.score}</span>
+          <span>⏱ {props.game.time} c</span>
+        </div>
+        {props.game.phase === 'play' && props.game.toys.map((toy) => (
+          <span className="game-toy" key={toy.id} style={{ left: `${toy.x}%`, top: `${toy.y}%`, fontSize: toy.size }}>
+            {toy.emoji}
+          </span>
+        ))}
+        {props.game.phase === 'play' && <span className="game-basket" style={{ left: `${props.game.basket}%` }}>🧺</span>}
+        {props.game.phase === 'idle' && (
+          <div className="game-overlay">
+            <div className="game-overlay__emoji">🧺</div>
+            <button onClick={props.onStart}>Начать игру</button>
+            <p>🦴 кость +2 · 🎾 мяч +1 · 🐛 червяк +3 · 💣 не лови</p>
+          </div>
+        )}
+        {props.game.phase === 'over' && props.game.result && (
+          <div className="game-overlay">
+            <div className="game-overlay__emoji">{props.game.result.emoji}</div>
+            <h2>{props.game.result.title}</h2>
+            <p>{props.game.result.text}</p>
+            {props.game.result.promo && (
+              <div className="won-promo">
+                <span>Ваш промокод</span>
+                <strong>{props.game.result.promo.code}</strong>
+              </div>
+            )}
+            <div className="game-actions">
+              <button onClick={props.onStart}>Ещё раз</button>
+              <button onClick={props.onCatalog}>За покупками</button>
+            </div>
+          </div>
+        )}
+      </div>
+      <div className="game-stats">
+        <span>🦴 Поймано бонусов всего: <strong>{props.bonuses}</strong></span>
+        <span>🎟️ Промокодов: <strong>{props.promoCount}</strong></span>
       </div>
     </section>
   );
