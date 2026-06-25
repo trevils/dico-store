@@ -443,7 +443,7 @@
       "title": "Дом мечты для\u00a0рептилии",
       "sub": "Стеклянные террариумы Exo Terra и инсектарии с быстрой сборкой. Скидка до конца недели.",
       "emoji": "🦎",
-      "image": "/images/eublepharis-transparent-backgroung.png",
+      "image": "./images/eublepharis-transparent-backgroung.png",
       "imageAlt": "Эублефар",
       "cta": "К террариумам",
       "target": { "name": "catalog", "cat": "terra" },
@@ -453,14 +453,14 @@
       "tagText": "oklch(0.9 0.16 95)",
       "btnBg": "oklch(0.18 0.02 280)",
       "btnText": "#fff",
-      "photoBg": "rgba(0,0,0,.07)"
+      "photoBg": "rgba(0,0,0,.1)"
     },
     {
       "tag": "Новинка недели",
       "title": "Меню для\u00a0ёжика и для\u00a0нутрии",
       "sub": "Сбалансированные корма ExoticPro и WildLife - рост, иммунитет и блестящие иголки.",
       "emoji": "🦔",
-      "image": "/images/hedgehog-transparent-background.png",
+      "image": "./images/hedgehog-transparent-background.png",
       "imageAlt": "Ёжик",
       "cta": "Выбрать корм",
       "target": { "name": "catalog", "cat": "food" },
@@ -470,14 +470,14 @@
       "tagText": "oklch(0.2 0.05 95)",
       "btnBg": "oklch(0.86 0.165 95)",
       "btnText": "oklch(0.2 0.02 280)",
-      "photoBg": "rgba(255,255,255,.14)"
+      "photoBg": "rgba(255,255,255,.18)"
     },
     {
       "tag": "Играй и\u00a0побеждай",
       "title": "Поймай игрушки\u00a0- лови промокод",
       "sub": "Сыграй в мини-игру, набери очки и получи бонусы и промокод на следующий заказ.",
       "emoji": "🎮",
-      "image": "/images/coypu-transparent-background.png",
+      "image": "./images/coypu-transparent-background.png",
       "imageAlt": "Нутрия",
       "cta": "Играть",
       "target": { "name": "game" },
@@ -487,7 +487,7 @@
       "tagText": "oklch(0.9 0.16 150)",
       "btnBg": "oklch(0.18 0.04 160)",
       "btnText": "#fff",
-      "photoBg": "rgba(0,0,0,.08)"
+      "photoBg": "rgba(0,0,0,.1)"
     }
   ]
 }

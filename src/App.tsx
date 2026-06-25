@@ -20,15 +20,28 @@ import {
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
+import {
+  brandChips,
+  defaultFilters,
+  demoUser,
+  emptyCheckout,
+  emptyGame,
+  galleryLabels,
+  galleryTints,
+  promoCatalog,
+  sortDefs,
+  starterReviews,
+} from './app-config';
 import { categories, pets, products, promoSlides, purposes } from './data';
+import { badgeLabel, badgeMeta, fmt, matchesProduct, readStorage, sortedProducts, writeStorage } from './shop-utils';
 import type {
   AccountTab,
-  Badge,
   CartLine,
   CategoryId,
   CheckoutFields,
   Filters,
   GameState,
+  GameToy,
   Order,
   PetId,
   Promo,
@@ -41,119 +54,6 @@ import type {
   User,
   ViewMode,
 } from './types';
-
-const defaultFilters: Filters = {
-  pets: [],
-  cats: [],
-  brands: [],
-  purposes: [],
-  priceMin: 0,
-  priceMax: 8000,
-  weight: 'any',
-  age: 'any',
-  rating: 0,
-  inStock: false,
-};
-
-const sortDefs: Array<[SortKey, string]> = [
-  ['popular', 'Популярные'],
-  ['cheap', 'Сначала недорогие'],
-  ['exp', 'Сначала дорогие'],
-  ['rating', 'По рейтингу'],
-  ['new', 'Новинки'],
-  ['discount', 'По скидке'],
-];
-
-const brandChips = ['Exo Terra', 'ExoticPro', 'Versele-Laga', 'WildLife', 'Repti', 'Padovan'];
-const demoUser: StoredUser = { name: 'Любовь Шейда', email: 'liubovsheyda@gmail.com', password: 'Teacher_2026' };
-const emptyCheckout: CheckoutFields = { name: '', phone: '', address: '', pay: 'card' };
-const emptyGame: GameState = { phase: 'idle', score: 0, time: 30, toys: [], basket: 50, result: null };
-const promoCatalog: Record<string, Promo> = {
-  DIKO10: { code: 'DIKO10', type: 'percent', value: 10 },
-  EXOTIC15: { code: 'EXOTIC15', type: 'percent', value: 15 },
-  WELCOME300: { code: 'WELCOME300', type: 'fixed', value: 300 },
-};
-const galleryTints = [
-  'var(--surface-2)',
-  'rgba(120,80,200,.10)',
-  'rgba(0,170,90,.10)',
-  'rgba(230,190,30,.14)',
-];
-const galleryLabels = ['Основное фото', 'Вид сбоку', 'Деталь', 'В интерьере'];
-
-function readStorage<T>(key: string, fallback: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function writeStorage<T>(key: string, value: T) {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch {
-    // localStorage can be disabled in privacy modes.
-  }
-}
-
-function fmt(value: number) {
-  return `${value.toLocaleString('ru-RU')} ₽`;
-}
-
-function badgeLabel(product: Product) {
-  if (product.badge === 'hit') return 'ХИТ';
-  if (product.badge === 'new') return 'НОВИНКА';
-  if (product.badge === 'sale' && product.old) {
-    return `−${Math.round((1 - product.price / product.old) * 100)}%`;
-  }
-  return '';
-}
-
-function badgeMeta(badge: Badge) {
-  return {
-    bg: badge === 'sale' ? 'var(--green)' : badge === 'new' ? 'var(--purple)' : 'var(--yellow)',
-    color: badge === 'new' ? '#fff' : '#241c00',
-  };
-}
-
-function sortedProducts(list: Product[], sort: SortKey) {
-  const sorted = [...list];
-  if (sort === 'cheap') sorted.sort((a, b) => a.price - b.price);
-  else if (sort === 'exp') sorted.sort((a, b) => b.price - a.price);
-  else if (sort === 'rating') sorted.sort((a, b) => b.rating - a.rating);
-  else if (sort === 'new') sorted.sort((a, b) => b.id - a.id);
-  else if (sort === 'discount') sorted.sort((a, b) => (b.old ? b.old - b.price : 0) - (a.old ? a.old - a.price : 0));
-  else sorted.sort((a, b) => b.popularity - a.popularity);
-  return sorted;
-}
-
-function matchesProduct(product: Product, filters: Filters, query: string) {
-  const q = query.trim().toLowerCase();
-  if (
-    q &&
-    !(
-      product.title.toLowerCase().includes(q) ||
-      product.brand.toLowerCase().includes(q) ||
-      product.petName.toLowerCase().includes(q)
-    )
-  ) {
-    return false;
-  }
-  if (filters.pets.length && !filters.pets.includes(product.pet)) return false;
-  if (filters.cats.length && !filters.cats.includes(product.cat)) return false;
-  if (filters.brands.length && !filters.brands.includes(product.brand)) return false;
-  if (filters.purposes.length && !filters.purposes.some((purpose) => product.purposes.includes(purpose))) return false;
-  if (product.price < filters.priceMin || product.price > filters.priceMax) return false;
-  if (filters.weight === 'light' && !(product.weight > 0 && product.weight < 500)) return false;
-  if (filters.weight === 'mid' && !(product.weight >= 500 && product.weight <= 2000)) return false;
-  if (filters.weight === 'heavy' && !(product.weight > 2000)) return false;
-  if (filters.age !== 'any' && product.age !== 'any' && product.age !== filters.age) return false;
-  if (filters.rating && product.rating < filters.rating) return false;
-  if (filters.inStock && !product.stock) return false;
-  return true;
-}
 
 interface ProductCardProps {
   product: Product;
@@ -204,14 +104,15 @@ function ProductGalleryMedia({
   emojiClassName: string;
   loading?: 'eager' | 'lazy';
 }) {
-  const image = index === 0 ? product.images[0] : undefined;
+  const image = product.images[index] ?? product.images[0] ?? product.image;
 
   if (image) {
     return (
       <img
         className={imageClassName}
         src={image}
-        alt={product.imageAlt ?? product.title}
+        alt={`${product.imageAlt ?? product.title}: ${galleryLabels[index] ?? 'фото товара'}`}
+        data-view={index}
         loading={loading}
         decoding="async"
       />
@@ -323,19 +224,37 @@ export function App() {
   const enterTimer = useRef<number | null>(null);
   const gameTimer = useRef<number | null>(null);
   const gameLastTick = useRef(0);
-  const gameElapsed = useRef(0);
-  const gameSpawn = useRef(0);
+  const gameSim = useRef<{ score: number; toys: GameToy[]; basket: number; elapsed: number; spawn: number }>({
+    score: 0,
+    toys: [],
+    basket: 50,
+    elapsed: 0,
+    spawn: 0,
+  });
 
   useEffect(() => {
+    const users = readStorage<StoredUser[]>('diko_users', []);
     if (!localStorage.getItem('diko_seeded')) {
-      writeStorage('diko_users', [demoUser]);
+      writeStorage('diko_users', users.some((item) => item.email === demoUser.email) ? users : [demoUser, ...users]);
       localStorage.setItem('diko_seeded', '1');
-      return;
+    } else if (!users.some((item) => item.email === demoUser.email)) {
+      writeStorage('diko_users', [demoUser, ...users]);
     }
 
-    const users = readStorage<StoredUser[]>('diko_users', []);
-    if (!users.some((item) => item.email === demoUser.email)) {
-      writeStorage('diko_users', [demoUser, ...users]);
+    if (!localStorage.getItem('diko_reviews_seeded')) {
+      const savedReviews = readStorage<Record<number, Review[]>>('diko_reviews', {});
+      const nextReviews = { ...savedReviews };
+
+      Object.entries(starterReviews).forEach(([productId, seededList]) => {
+        const id = Number(productId);
+        const currentList = nextReviews[id] ?? [];
+        const missing = seededList.filter((review) => !currentList.some((item) => item.id === review.id));
+        if (missing.length) nextReviews[id] = [...currentList, ...missing];
+      });
+
+      writeStorage('diko_reviews', nextReviews);
+      setReviews(nextReviews);
+      localStorage.setItem('diko_reviews_seeded', '1');
     }
   }, []);
 
@@ -718,7 +637,18 @@ export function App() {
     nav({ name: 'game' });
   };
 
-  const createGameResult = (score: number) => {
+  const createGameResult = (score: number, lost = false) => {
+    if (lost) {
+      return {
+        score,
+        bonus: 0,
+        promo: null as Promo | null,
+        title: 'Бах! Поймали бомбу',
+        emoji: '💥',
+        text: `Раунд проигран — в корзину попала бомба. Очки (${score}) и бонусы за раунд сгорели. Лови насекомых, но обходи 💣!`,
+      };
+    }
+
     let promo: Promo | null = null;
     let title = 'Игра окончена';
     let emoji = '🐾';
@@ -749,9 +679,9 @@ export function App() {
     };
   };
 
-  const finishRound = (score: number) => {
+  const finishRound = (score: number, lost = false) => {
     stopGameLoop();
-    const result = createGameResult(score);
+    const result = createGameResult(score, lost);
     const nextBonuses = bonuses + result.bonus;
     const nextPromos = result.promo && !promos.some((item) => item.code === result.promo?.code) ? [...promos, result.promo] : promos;
 
@@ -759,66 +689,84 @@ export function App() {
     setPromos(nextPromos);
     writeStorage('diko_bonuses', nextBonuses);
     writeStorage('diko_promos', nextPromos);
-    if (result.bonus > 0) showToast(`+${result.bonus} бонусов начислено`, '🌟');
+    if (lost) showToast('Бомба! Раунд проигран', '💥');
+    else if (result.bonus > 0) showToast(`+${result.bonus} бонусов начислено`, '🌟');
     return result;
   };
 
+  // The whole simulation lives in gameSim and is advanced here, in the interval
+  // callback that fires once per frame. Keeping all mutation out of the setGame
+  // updater means the updater stays pure and survives StrictMode's double-invoke.
   const gameTick = () => {
     const now = performance.now();
     const dt = Math.min(50, now - gameLastTick.current) / 1000;
     gameLastTick.current = now;
-    gameElapsed.current += dt;
-    gameSpawn.current += dt;
 
-    setGame((current) => {
-      if (current.phase !== 'play') return current;
+    const sim = gameSim.current;
+    sim.elapsed += dt;
+    sim.spawn += dt;
 
-      let score = current.score;
-      let toys = current.toys.map((toy) => ({ ...toy, y: toy.y + toy.vy * dt }));
-      const kept = [];
-
-      for (const toy of toys) {
-        if (toy.y >= 86 && toy.y <= 99 && Math.abs(toy.x - current.basket) < 10) {
-          score = toy.type === 'bomb' ? Math.max(0, score - 5) : score + toy.pts;
-          continue;
-        }
-        if (toy.y <= 104) kept.push(toy);
+    const kept: GameToy[] = [];
+    let caughtBomb = false;
+    for (const toy of sim.toys) {
+      const y = toy.y + toy.vy * dt;
+      if (y >= 86 && y <= 99 && Math.abs(toy.x - sim.basket) < 10) {
+        if (toy.type === 'bomb') caughtBomb = true;
+        else sim.score += toy.pts;
+        continue;
       }
+      if (y <= 104) kept.push({ ...toy, y });
+    }
+    sim.toys = kept;
 
-      toys = kept;
-      if (gameSpawn.current > 0.62) {
-        gameSpawn.current = 0;
-        const roll = Math.random();
-        const base =
-          roll < 0.12
-            ? { type: 'bomb' as const, emoji: '💣', pts: 0, size: '34px' }
-            : roll < 0.42
-              ? { type: 'cucumber' as const, emoji: '🥒', pts: 1, size: '32px' }
-              : roll < 0.74
-                ? { type: 'cricket' as const, emoji: '🦗', pts: 2, size: '34px' }
-                : { type: 'caterpillar' as const, emoji: '🐛', pts: 3, size: '30px' };
-        toys.push({
-          id: Math.random(),
-          x: 8 + Math.random() * 84,
-          y: -4,
-          vy: 26 + Math.random() * 16 + gameElapsed.current * 0.6,
-          ...base,
-        });
-      }
+    // Catching a bomb ends the round immediately as a loss (no bonuses, no promo).
+    if (caughtBomb) {
+      const result = finishRound(sim.score, true);
+      setGame((current) => ({ ...current, toys: [], time: Math.max(0, Math.ceil(30 - sim.elapsed)), phase: 'over', result }));
+      return;
+    }
 
-      const time = Math.max(0, Math.ceil(30 - gameElapsed.current));
-      if (gameElapsed.current >= 30) {
-        return { ...current, toys: [], score, time: 0, phase: 'over', result: finishRound(score) };
-      }
+    if (sim.spawn > 0.62) {
+      sim.spawn = 0;
+      const roll = Math.random();
+      const base =
+        roll < 0.12
+          ? { type: 'bomb' as const, emoji: '💣', pts: 0, size: '34px' }
+          : roll < 0.42
+            ? { type: 'cucumber' as const, emoji: '🥒', pts: 1, size: '32px' }
+            : roll < 0.74
+              ? { type: 'cricket' as const, emoji: '🦗', pts: 2, size: '34px' }
+              : { type: 'caterpillar' as const, emoji: '🐛', pts: 3, size: '30px' };
+      sim.toys.push({
+        id: Math.random(),
+        x: 8 + Math.random() * 84,
+        y: -4,
+        vy: 26 + Math.random() * 16 + sim.elapsed * 0.6,
+        ...base,
+      });
+    }
 
-      return { ...current, toys, score, time };
-    });
+    if (sim.elapsed >= 30) {
+      stopGameLoop();
+      const result = finishRound(sim.score);
+      setGame((current) => ({ ...current, toys: [], score: sim.score, time: 0, phase: 'over', result }));
+      return;
+    }
+
+    const time = Math.max(0, Math.ceil(30 - sim.elapsed));
+    setGame((current) =>
+      current.phase === 'play' ? { ...current, toys: sim.toys, score: sim.score, time, basket: sim.basket } : current,
+    );
+  };
+
+  const moveBasket = (basket: number) => {
+    gameSim.current.basket = basket;
+    setGame((current) => (current.phase === 'play' ? { ...current, basket } : current));
   };
 
   const startRound = () => {
     stopGameLoop();
-    gameElapsed.current = 0;
-    gameSpawn.current = 0;
+    gameSim.current = { score: 0, toys: [], basket: 50, elapsed: 0, spawn: 0 };
     gameLastTick.current = performance.now();
     setGame({ phase: 'play', score: 0, time: 30, toys: [], basket: 50, result: null });
     gameTimer.current = window.setInterval(gameTick, 1000 / 60);
@@ -829,11 +777,11 @@ export function App() {
     const handler = (event: KeyboardEvent) => {
       if (event.key === 'ArrowLeft') {
         event.preventDefault();
-        setGame((current) => ({ ...current, basket: Math.max(6, current.basket - 6) }));
+        moveBasket(Math.max(6, gameSim.current.basket - 6));
       }
       if (event.key === 'ArrowRight') {
         event.preventDefault();
-        setGame((current) => ({ ...current, basket: Math.min(94, current.basket + 6) }));
+        moveBasket(Math.min(94, gameSim.current.basket + 6));
       }
     };
     window.addEventListener('keydown', handler);
@@ -1058,7 +1006,7 @@ export function App() {
             promoCount={promos.length}
             onStart={startRound}
             onCatalog={goCatalog}
-            onBasket={(basket) => setGame((current) => (current.phase === 'play' ? { ...current, basket } : current))}
+            onBasket={moveBasket}
           />
         )}
         {route.name === 'checkout' && (
@@ -1193,10 +1141,11 @@ function HomeScreen(props: {
   const current = promoSlides[props.slide];
 
   return (
-    <section className="page">
+    <section className="page page--home">
       <div className="hero">
         {promoSlides.map((promo, index) => (
           <div className="hero__slide" key={promo.tag} style={{ background: promo.bg, opacity: index === props.slide ? 1 : 0 }}>
+            <span className="hero__blob" style={{ background: promo.photoBg }} aria-hidden="true" />
             <div className="hero__copy">
               <span className="hero__tag" style={{ background: promo.tagBg, color: promo.tagText }}>
                 {promo.tag}
@@ -1516,6 +1465,7 @@ function ProductScreen(props: {
   const badge = badgeMeta(props.product.badge);
   const inFav = props.favorites.includes(props.product.id);
   const inCompare = props.compare.includes(props.product.id);
+  const visibleReviewCount = props.product.reviews + props.reviews.length;
 
   return (
     <section className="page">
@@ -1551,7 +1501,7 @@ function ProductScreen(props: {
           <h1>{props.product.title}</h1>
           <div className="rating-line">
             <span>★ {props.product.rating}</span>
-            <span>{props.product.reviews} отзывов</span>
+            <span>{visibleReviewCount} отзывов</span>
             <span>·</span>
             <span>{props.product.stock ? 'В наличии' : 'Под заказ'}</span>
           </div>

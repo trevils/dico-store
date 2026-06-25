@@ -59,7 +59,7 @@ export const categories: Category[] = data.categories;
 export const pets: Pet[] = data.pets;
 export const purposes = data.purposes;
 
-// без дублей руками
+// оптимизация многократного поиска по категориям и питомцам по формуле (x) => [x.id, x])
 const catMap = new Map(categories.map((c) => [c.id, c]));
 const petMap = new Map(pets.map((p) => [p.id, p]));
 
@@ -74,7 +74,7 @@ const productImages: Partial<Record<number, { src: string; alt: string }>> = {
   18: { src: driedMealwormsImage, alt: 'Сушёные мучные черви' },
 };
 
-// вес
+// фуормула расчета для обработки разных типов продукта
 function packLabel(g: number): [string, string] {
   if (!g) return ['Упаковка', 'штучно'];
   return g >= 1000 ? ['Вес', `${g / 1000} кг`] : ['Вес', `${g} г`];
@@ -103,7 +103,7 @@ export const products: Product[] = data.products.map((item) => {
     stock: item.stock,
     badge: item.badge,
     popularity: item.popularity,
-    images: imageInfo ? [imageInfo.src] : [],
+    images: imageInfo ? Array.from({ length: 4 }, () => imageInfo.src) : [],
     ...(imageInfo ? { image: imageInfo.src, imageAlt: imageInfo.alt } : {}),
     emoji: petInfo?.emoji ?? '🐾',
     catEmoji: catInfo?.emoji ?? '📦',
