@@ -488,6 +488,23 @@
       "btnBg": "oklch(0.18 0.04 160)",
       "btnText": "#fff",
       "photoBg": "rgba(0,0,0,.1)"
+    },
+    {
+      "tag": "Доброе дело",
+      "title": "Подари бонусы центру спасения",
+      "sub": "Перечисли свои акционные очки на еду и лечение в фонд приюта для грызунов.",
+      "emoji": "🐀",
+      "image": "./images/rat-transparent-background.png",
+      "imageAlt": "Крыса",
+      "cta": "К бонусам",
+      "target": { "name": "account", "tab": "bonuses" },
+      "bg": "oklch(0.78 0.13 225)",
+      "text": "oklch(0.17 0.035 245)",
+      "tagBg": "oklch(0.2 0.055 245)",
+      "tagText": "oklch(0.92 0.08 220)",
+      "btnBg": "oklch(0.2 0.055 245)",
+      "btnText": "#fff",
+      "photoBg": "rgba(255,255,255,.22)"
     }
   ]
 }

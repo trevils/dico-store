@@ -33,7 +33,17 @@ import {
   starterReviews,
 } from './app-config';
 import { categories, pets, products, promoSlides, purposes } from './data';
+import type { PromoTarget } from './data';
 import { badgeLabel, badgeMeta, fmt, matchesProduct, readStorage, sortedProducts, writeStorage } from './shop-utils';
+import {
+  bonusForOrder,
+  cartCareAdvice,
+  deliveryCost,
+  lifetimeSpent,
+  loyaltyTier,
+  spentToNextTier,
+} from './pet-care';
+import type { CareAdvice, LoyaltyTier } from './pet-care';
 import type {
   AccountTab,
   CartLine,
@@ -292,9 +302,12 @@ export function App() {
       )
     : 0;
   const afterDiscount = subtotal - discount;
-  const delivery = afterDiscount >= 3000 || afterDiscount === 0 ? 0 : 350;
+  const spent = useMemo(() => lifetimeSpent(orders), [orders]);
+  const tier = useMemo(() => loyaltyTier(spent), [spent]);
+  const delivery = deliveryCost(afterDiscount, tier);
   const orderTotal = afterDiscount + delivery;
-  const earnBonus = Math.round(orderTotal / 100);
+  const earnBonus = bonusForOrder(orderTotal, tier);
+  const careAdvice = useMemo(() => cartCareAdvice(cartItems.map((item) => item.product)), [cartItems]);
 
   const showToast = (msg: string, icon = '✓') => {
     const id = ++toastId.current;
@@ -637,6 +650,23 @@ export function App() {
     nav({ name: 'game' });
   };
 
+  const openPromoTarget = (target: PromoTarget) => {
+    if (target.name === 'catalog') {
+      setFilters((value) => ({ ...value, cats: [target.cat] }));
+      setPage(1);
+      nav({ name: 'catalog' });
+      return;
+    }
+
+    if (target.name === 'game') {
+      startGame();
+      return;
+    }
+
+    if (user) nav({ name: 'account', tab: target.tab });
+    else openAuth('login');
+  };
+
   const createGameResult = (score: number, lost = false) => {
     if (lost) {
       return {
@@ -821,6 +851,7 @@ export function App() {
           nav({ name: 'catalog' });
         }}
         onHome={() => nav({ name: 'home' })}
+        onPromotions={() => nav({ name: 'promotions' })}
         onCatalog={goCatalog}
         onPopular={() => {
           setSort('popular');
@@ -864,8 +895,14 @@ export function App() {
               setPage(1);
               nav({ name: 'catalog' });
             }}
-            onGame={startGame}
+            onPromoSelect={openPromoTarget}
             actions={appActions}
+          />
+        )}
+        {route.name === 'promotions' && (
+          <PromotionsScreen
+            onHome={() => nav({ name: 'home' })}
+            onPromoSelect={openPromoTarget}
           />
         )}
         {route.name === 'catalog' && (
@@ -935,6 +972,8 @@ export function App() {
             delivery={delivery}
             total={orderTotal}
             earnBonus={earnBonus}
+            tier={tier}
+            advice={careAdvice}
             onQty={setQty}
             onRemove={removeFromCart}
             onCatalog={goCatalog}
@@ -972,6 +1011,9 @@ export function App() {
             user={user}
             tab={route.tab ?? 'profile'}
             bonuses={bonuses}
+            tier={tier}
+            spent={spent}
+            toNextTier={spentToNextTier(spent)}
             promos={promos}
             orders={orders}
             favoriteProducts={favoriteProducts}
@@ -1052,6 +1094,7 @@ function Header(props: {
   onSearch: (value: string) => void;
   onSearchSubmit: () => void;
   onHome: () => void;
+  onPromotions: () => void;
   onCatalog: () => void;
   onPopular: () => void;
   onTheme: () => void;
@@ -1071,7 +1114,7 @@ function Header(props: {
         <nav className="top-nav">
           <button onClick={props.onCatalog}>Каталог</button>
           <button onClick={props.onPopular}>Популярное</button>
-          <button onClick={props.onHome}>Акции</button>
+          <button onClick={props.onPromotions}>Акции</button>
           <button className="top-nav__accent" onClick={props.onGame}>
             Игра
           </button>
@@ -1134,7 +1177,7 @@ function HomeScreen(props: {
   onCatalog: () => void;
   onSetCategory: (cat: CategoryId) => void;
   onSetBrand: (brand: string) => void;
-  onGame: () => void;
+  onPromoSelect: (target: PromoTarget) => void;
   actions: ProductActions;
 }) {
   const popular = sortedProducts(products, 'popular').slice(0, 8);
@@ -1155,10 +1198,7 @@ function HomeScreen(props: {
               <button
                 className="pill-button"
                 style={{ background: promo.btnBg, color: promo.btnText }}
-                onClick={() => {
-                  if (promo.target.name === 'game') props.onGame();
-                  else if (promo.target.cat) props.onSetCategory(promo.target.cat);
-                }}
+                onClick={() => props.onPromoSelect(promo.target)}
               >
                 {promo.cta}
               </button>
@@ -1216,6 +1256,47 @@ function HomeScreen(props: {
           <button key={brand} onClick={() => props.onSetBrand(brand)}>
             {brand}
           </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function PromotionsScreen(props: {
+  onHome: () => void;
+  onPromoSelect: (target: PromoTarget) => void;
+}) {
+  return (
+    <section className="page page--promotions">
+      <Breadcrumb onHome={props.onHome} trail={['Акции']} />
+      <h1 className="page-title">Акции магазина</h1>
+      <p className="muted page-subtitle">Все предложения из главного баннера в удобном вертикальном списке.</p>
+
+      <div className="promotions-list">
+        {promoSlides.map((promo) => (
+          <article
+            className="promotion-card"
+            key={promo.tag}
+            style={{ background: promo.bg, color: promo.text }}
+          >
+            <span className="promotion-card__blob" style={{ background: promo.photoBg }} aria-hidden="true" />
+            <div className="promotion-card__copy">
+              <span className="hero__tag" style={{ background: promo.tagBg, color: promo.tagText }}>
+                {promo.tag}
+              </span>
+              <h2>{promo.title}</h2>
+              <p>{promo.sub}</p>
+              <button
+                style={{ background: promo.btnBg, color: promo.btnText }}
+                onClick={() => props.onPromoSelect(promo.target)}
+              >
+                {promo.cta}
+              </button>
+            </div>
+            <div className="promotion-card__visual">
+              {promo.image ? <img src={promo.image} alt={promo.imageAlt} draggable={false} /> : <span>{promo.emoji}</span>}
+            </div>
+          </article>
         ))}
       </div>
     </section>
@@ -1603,6 +1684,8 @@ function CartScreen(props: {
   delivery: number;
   total: number;
   earnBonus: number;
+  tier: LoyaltyTier;
+  advice: CareAdvice[];
   onQty: (id: number, qty: number) => void;
   onRemove: (id: number) => void;
   onCatalog: () => void;
@@ -1616,6 +1699,16 @@ function CartScreen(props: {
   return (
     <section className="page">
       <h1 className="page-title">Корзина</h1>
+      {props.advice.length > 0 && (
+        <div className="care-advice">
+          {props.advice.map((item) => (
+            <div className={`care-advice__item care-advice__item--${item.level}`} key={item.id}>
+              <span className="care-advice__icon">{item.icon}</span>
+              <span>{item.text}</span>
+            </div>
+          ))}
+        </div>
+      )}
       <div className="cart-layout">
         <div className="cart-lines">
           {props.items.map(({ line, product }) => (
@@ -1649,7 +1742,10 @@ function CartScreen(props: {
           <div className="summary-row"><span>Доставка</span><strong>{props.delivery === 0 ? 'Бесплатно' : fmt(props.delivery)}</strong></div>
           <div className="summary-total"><span>К оплате</span><strong>{fmt(props.total)}</strong></div>
           <button onClick={props.onCheckout}>Оформить</button>
-          <p className="summary-bonus">Бонусов начислим: +{props.earnBonus} 🌟</p>
+          <p className="summary-bonus">
+            Бонусов начислим: +{props.earnBonus} 🌟
+            <span className="summary-tier">{props.tier.icon} статус «{props.tier.label}» · {Math.round(props.tier.bonusRate * 100)}% бонусами</span>
+          </p>
         </aside>
       </div>
     </section>
@@ -1898,6 +1994,9 @@ function AccountScreen(props: {
   user: User;
   tab: AccountTab;
   bonuses: number;
+  tier: LoyaltyTier;
+  spent: number;
+  toNextTier: number;
   promos: Promo[];
   orders: Order[];
   favoriteProducts: Product[];
@@ -2015,6 +2114,17 @@ function AccountScreen(props: {
                 </div>
                 <button onClick={props.onGame}>🎮 Заработать в игре</button>
               </div>
+              <div className="loyalty-card">
+                <div className="loyalty-card__head">
+                  <strong>{props.tier.icon} Статус «{props.tier.label}»</strong>
+                  <span>{Math.round(props.tier.bonusRate * 100)}% бонусами за заказ</span>
+                </div>
+                {props.toNextTier > 0 ? (
+                  <small>До следующего статуса осталось заказов на {fmt(props.toNextTier)}. Потрачено всего: {fmt(props.spent)}.</small>
+                ) : (
+                  <small>Максимальный статус ДИКОклуба — спасибо, что с нами! Потрачено всего: {fmt(props.spent)}.</small>
+                )}
+              </div>
               <h2 className="subhead">Мои промокоды</h2>
               {props.promos.length === 0 && <div className="empty-inline">Промокодов нет. Сыграйте в игру «Поймай игрушки» и выиграйте промокод!</div>}
               <div className="promo-grid">
@@ -2077,15 +2187,15 @@ function GameScreen(props: {
   return (
     <section className="page page--game">
       <div className="game-heading">
-        <h1>Поймай игрушки 🎮</h1>
-        <p>Лови падающие игрушки в корзинку. Двигай корзину мышкой или стрелками ← →.</p>
+        <h1>Поймай еду для ёжика 🎮</h1>
+        <p>Лови корм в корзинку. Двигай корзину мышкой или стрелками ← →.</p>
       </div>
       <div
         className="game-field"
         onMouseMove={(event) => {
           if (props.game.phase !== 'play') return;
           const rect = event.currentTarget.getBoundingClientRect();
-          props.onBasket(Math.max(6, Math.min(94, ((event.clientX - rect.left) / rect.width) * 100)));
+          props.onBasket(Math.max(7, Math.min(95, ((event.clientX - rect.left) / rect.width) * 100)));
         }}
       >
         <div className="game-hud">
@@ -2210,7 +2320,7 @@ function Footer() {
         </div>
         <p>Магазин для необычных питомцев · 2026</p>
       </div>
-      <p>Корма, террариумы, уход и игрушки для рептилий, ёжиков, нутрий, птиц, грызунов и насекомых.</p>
+      <p>Корма, террариумы, уход и игрушки для рептилий, птиц, грызунов и насекомых.</p>
     </footer>
   );
 }

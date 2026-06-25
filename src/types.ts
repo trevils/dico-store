@@ -90,6 +90,7 @@ export type Route =
   | { name: 'cart' }
   | { name: 'favorites' }
   | { name: 'compare' }
+  | { name: 'promotions' }
   | { name: 'auth' }
   | { name: 'account'; tab?: AccountTab }
   | { name: 'game' }

@@ -48,16 +48,76 @@ export function sortedProducts(list: Product[], sort: SortKey) {
   return sorted;
 }
 
+const searchSynonyms: Record<string, string[]> = {
+  ящерица: ['рептилии', 'рептилия', 'террариум', 'террариумы', 'reptile'],
+  ящерицы: ['рептилии', 'рептилия', 'террариум', 'террариумы', 'reptile'],
+  ящер: ['рептилии', 'рептилия', 'террариум', 'террариумы'],
+  геккон: ['рептилии', 'рептилия', 'эублефар', 'террариум'],
+  гекконы: ['рептилии', 'рептилия', 'эублефар', 'террариум'],
+  эублефар: ['рептилии', 'рептилия', 'ящерица', 'геккон', 'террариум'],
+  эублефары: ['рептилии', 'рептилия', 'ящерица', 'геккон', 'террариум'],
+  попугай: ['птицы', 'птица', 'bird', 'корм'],
+  попугаи: ['птицы', 'птица', 'bird', 'корм'],
+  птица: ['птицы', 'попугай', 'bird'],
+  птицы: ['птица', 'попугай', 'bird'],
+  еж: ['ёжики', 'ежики', 'ёжик', 'корм'],
+  ежик: ['ёжики', 'ежики', 'ёжик', 'корм'],
+  ежики: ['ёжики', 'ежи', 'корм'],
+  ёж: ['ёжики', 'ежики', 'ёжик', 'корм'],
+  ёжик: ['ёжики', 'ежики', 'еж', 'корм'],
+  ёжики: ['ежики', 'ежи', 'корм'],
+  крыса: ['грызуны', 'грызун', 'rodent'],
+  крысы: ['грызуны', 'грызун', 'rodent'],
+  хомяк: ['грызуны', 'грызун', 'rodent'],
+  хомяки: ['грызуны', 'грызун', 'rodent'],
+  шиншилла: ['грызуны', 'грызун', 'песок'],
+  шиншиллы: ['грызуны', 'грызун', 'песок'],
+  нутрия: ['нутрии', 'nutria'],
+  нутрии: ['нутрия', 'nutria'],
+  жук: ['насекомые', 'насекомое', 'insect'],
+  насекомое: ['насекомые', 'insect'],
+  насекомые: ['насекомое', 'insect'],
+  сверчок: ['сверчки', 'насекомые', 'корм'],
+  сверчки: ['сверчок', 'насекомые', 'корм'],
+  червь: ['черви', 'мучные черви', 'лакомства'],
+  черви: ['червь', 'мучные черви', 'лакомства'],
+};
+
+function normalizeSearch(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/ё/g, 'е')
+    .replace(/[^\p{L}\p{N}\s.-]+/gu, ' ')
+    .replace(/\s+/g, ' ');
+}
+
+function queryTerms(query: string) {
+  const normalized = normalizeSearch(query);
+  if (!normalized) return [];
+
+  const words = normalized.split(' ');
+  return [...new Set([normalized, ...words, ...words.flatMap((word) => searchSynonyms[word] ?? [])].map(normalizeSearch).filter(Boolean))];
+}
+
+function productSearchText(product: Product) {
+  return normalizeSearch(
+    [
+      product.title,
+      product.brand,
+      product.petName,
+      product.cat,
+      product.pet,
+      product.desc,
+      ...product.purposes,
+      ...product.specs.flatMap(([key, value]) => [key, value]),
+    ].join(' '),
+  );
+}
+
 export function matchesProduct(product: Product, filters: Filters, query: string) {
-  const q = query.trim().toLowerCase();
-  if (
-    q &&
-    !(
-      product.title.toLowerCase().includes(q) ||
-      product.brand.toLowerCase().includes(q) ||
-      product.petName.toLowerCase().includes(q)
-    )
-  ) {
+  const terms = queryTerms(query);
+  if (terms.length && !terms.some((term) => productSearchText(product).includes(term))) {
     return false;
   }
   if (filters.pets.length && !filters.pets.includes(product.pet)) return false;

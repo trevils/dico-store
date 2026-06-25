@@ -27,7 +27,12 @@ type ProductRecord = {
   popularity: number;
 };
 
-type PromoSlide = {
+export type PromoTarget =
+  | { name: 'catalog'; cat: CategoryId }
+  | { name: 'game' }
+  | { name: 'account'; tab: 'bonuses' };
+
+export type PromoSlide = {
   tag: string;
   title: string;
   sub: string;
@@ -35,7 +40,7 @@ type PromoSlide = {
   image: string;
   imageAlt: string;
   cta: string;
-  target: { name: 'catalog'; cat: CategoryId } | { name: 'game' };
+  target: PromoTarget;
   bg: string;
   text: string;
   tagBg: string;

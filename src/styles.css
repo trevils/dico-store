@@ -387,8 +387,8 @@ textarea:focus-visible {
 
 .hero__visual {
   position: absolute;
-  right: -10%;
-  bottom: -20%;
+  right: -5%;
+  bottom: -10%;
   z-index: 2;
   width: min(60%, 760px);
   height: 118%;
@@ -470,6 +470,97 @@ textarea:focus-visible {
 
 .hero-dot--active {
   width: 26px;
+}
+
+.promotions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.promotion-card {
+  position: relative;
+  min-height: 270px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 38%);
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--border), transparent 30%);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+}
+
+.promotion-card__blob {
+  position: absolute;
+  right: -12%;
+  bottom: -35%;
+  z-index: 1;
+  width: min(56%, 600px);
+  height: 150%;
+  border-radius: 48% 52% 54% 46% / 56% 46% 56% 44%;
+  transform: rotate(-8deg);
+  pointer-events: none;
+}
+
+.promotion-card__copy {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  padding: 42px 52px;
+}
+
+.promotion-card__copy h2 {
+  max-width: 720px;
+  margin: 0;
+  font-family: 'Unbounded', sans-serif;
+  font-size: clamp(28px, 3vw, 44px);
+  font-weight: 800;
+  line-height: 1.05;
+}
+
+.promotion-card__copy p {
+  max-width: 620px;
+  margin: 16px 0 0;
+  font-size: 17px;
+  line-height: 1.55;
+  opacity: 0.88;
+}
+
+.promotion-card__copy button {
+  align-self: flex-start;
+  margin-top: 28px;
+  padding: 14px 28px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.promotion-card__visual {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  min-height: 270px;
+  padding: 24px 0 0 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.promotion-card__visual img {
+  width: min(126%, 500px);
+  max-height: 285px;
+  object-fit: contain;
+  object-position: right bottom;
+  transform: translateX(56px);
+  filter: drop-shadow(0 18px 28px rgba(20, 18, 40, 0.18));
+}
+
+.promotion-card__visual span {
+  margin: auto;
+  font-size: 92px;
 }
 
 .section-title {
@@ -1571,6 +1662,78 @@ textarea:focus-visible {
   font-size: 12px;
 }
 
+.summary-tier {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-dim);
+}
+
+.care-advice {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.care-advice__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.care-advice__icon {
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
+.care-advice__item--warn {
+  border-color: color-mix(in srgb, var(--yellow-deep), transparent 40%);
+  background: color-mix(in srgb, var(--yellow), transparent 86%);
+}
+
+.care-advice__item--tip {
+  border-color: color-mix(in srgb, var(--purple), transparent 60%);
+  background: color-mix(in srgb, var(--purple), transparent 92%);
+}
+
+.care-advice__item--ok {
+  border-color: color-mix(in srgb, var(--green), transparent 50%);
+  background: color-mix(in srgb, var(--green), transparent 88%);
+}
+
+.loyalty-card {
+  margin-top: 16px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.loyalty-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.loyalty-card__head span {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.loyalty-card small {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
 .collection-head {
   display: flex;
   align-items: center;
@@ -2523,6 +2686,14 @@ textarea:focus-visible {
     font-size: 40px;
   }
 
+  .promotion-card {
+    grid-template-columns: minmax(0, 1fr) minmax(210px, 34%);
+  }
+
+  .promotion-card__copy {
+    padding: 36px 40px;
+  }
+
   .catalog-layout,
   .product-detail,
   .reviews-layout,
@@ -2603,7 +2774,7 @@ textarea:focus-visible {
   }
 
   .hero__visual {
-    right: -20%;
+    right: -10%;
     bottom: -8%;
     width: 86%;
     height: 58%;
@@ -2645,6 +2816,41 @@ textarea:focus-visible {
     left: 50%;
     bottom: 26px;
     transform: translateX(-50%);
+  }
+
+  .promotion-card {
+    min-height: 520px;
+    grid-template-columns: 1fr;
+  }
+
+  .promotion-card__copy {
+    padding: 34px 24px 0;
+  }
+
+  .promotion-card__copy h2 {
+    font-size: 29px;
+  }
+
+  .promotion-card__copy p {
+    font-size: 15px;
+  }
+
+  .promotion-card__visual {
+    min-height: 230px;
+    padding: 0;
+  }
+
+  .promotion-card__visual img {
+    width: min(96%, 350px);
+    max-height: 230px;
+    transform: translateX(22px);
+  }
+
+  .promotion-card__blob {
+    right: -28%;
+    bottom: -12%;
+    width: 92%;
+    height: 58%;
   }
 
   .category-grid,
