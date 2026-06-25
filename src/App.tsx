@@ -759,7 +759,7 @@ export function App() {
     setPromos(nextPromos);
     writeStorage('diko_bonuses', nextBonuses);
     writeStorage('diko_promos', nextPromos);
-    if (result.bonus > 0) showToast(`+${result.bonus} бонусов начислено`, '🦴');
+    if (result.bonus > 0) showToast(`+${result.bonus} бонусов начислено`, '🌟');
     return result;
   };
 
@@ -793,10 +793,10 @@ export function App() {
           roll < 0.12
             ? { type: 'bomb' as const, emoji: '💣', pts: 0, size: '34px' }
             : roll < 0.42
-              ? { type: 'ball' as const, emoji: '🎾', pts: 1, size: '32px' }
+              ? { type: 'cucumber' as const, emoji: '🥒', pts: 1, size: '32px' }
               : roll < 0.74
-                ? { type: 'bone' as const, emoji: '🦴', pts: 2, size: '34px' }
-                : { type: 'worm' as const, emoji: '🐛', pts: 3, size: '30px' };
+                ? { type: 'cricket' as const, emoji: '🦗', pts: 2, size: '34px' }
+                : { type: 'caterpillar' as const, emoji: '🐛', pts: 3, size: '30px' };
         toys.push({
           id: Math.random(),
           x: 8 + Math.random() * 84,
@@ -1699,7 +1699,7 @@ function CartScreen(props: {
           <div className="summary-row"><span>Доставка</span><strong>{props.delivery === 0 ? 'Бесплатно' : fmt(props.delivery)}</strong></div>
           <div className="summary-total"><span>К оплате</span><strong>{fmt(props.total)}</strong></div>
           <button onClick={props.onCheckout}>Оформить</button>
-          <p className="summary-bonus">Бонусов начислим: +{props.earnBonus} 🦴</p>
+          <p className="summary-bonus">Бонусов начислим: +{props.earnBonus} 🌟</p>
         </aside>
       </div>
     </section>
@@ -1788,7 +1788,7 @@ function CheckoutScreen(props: {
         <div className="success-panel">
           <div className="success-panel__emoji">🎉</div>
           <h1>Заказ {props.orderDone.no} оформлен!</h1>
-          <p>Мы свяжемся с вами для подтверждения. Начислено <strong>+{props.orderDone.bonus} бонусов 🦴</strong> на ваш счёт.</p>
+          <p>Мы свяжемся с вами для подтверждения. Начислено <strong>+{props.orderDone.bonus} бонусов 🌟</strong> на ваш счёт.</p>
           <div className="success-panel__actions">
             <button onClick={props.onOrders}>Мои заказы</button>
             <button onClick={props.onCatalog}>Продолжить покупки</button>
@@ -1985,7 +1985,7 @@ function AccountScreen(props: {
           </div>
           <div className="bonus-card">
             <span>Бонусный счёт</span>
-            <strong>{props.bonuses} 🦴</strong>
+            <strong>{props.bonuses} 🌟</strong>
           </div>
           <div className="account-tabs">
             {tabs.map(([id, label, icon, count]) => (
@@ -2034,7 +2034,7 @@ function AccountScreen(props: {
                       ))}
                     </div>
                     <div className="order-card__total">
-                      <span>+{order.bonus} бонусов 🦴</span>
+                      <span>+{order.bonus} бонусов 🌟</span>
                       <strong>{fmt(order.total)}</strong>
                     </div>
                   </article>
@@ -2060,7 +2060,7 @@ function AccountScreen(props: {
               <div className="bonus-hero">
                 <div>
                   <span>Доступно бонусов</span>
-                  <strong>{props.bonuses} 🦴</strong>
+                  <strong>{props.bonuses} 🌟</strong>
                   <small>1 бонус = 1 ₽ при оплате</small>
                 </div>
                 <button onClick={props.onGame}>🎮 Заработать в игре</button>
@@ -2174,7 +2174,7 @@ function GameScreen(props: {
         )}
       </div>
       <div className="game-stats">
-        <span>🦔 Поймано бонусов всего: <strong>{props.bonuses}</strong></span>
+        <span>🌟 Поймано бонусов всего: <strong>{props.bonuses}</strong></span>
         <span>🎟️ Промокодов: <strong>{props.promoCount}</strong></span>
       </div>
     </section>

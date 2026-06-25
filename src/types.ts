@@ -147,7 +147,7 @@ export interface GameToy {
   x: number;
   y: number;
   vy: number;
-  type: 'ball' | 'bone' | 'worm' | 'bomb';
+  type: 'cricket' | 'cucumber' | 'caterpillar' | 'bomb';
   emoji: string;
   pts: number;
   size: string;
