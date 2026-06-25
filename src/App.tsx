@@ -22,6 +22,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { categories, pets, products, promoSlides, purposes } from './data';
 import type {
+  AccountTab,
   Badge,
   CartLine,
   CategoryId,
@@ -1025,6 +1026,9 @@ export function App() {
             bonuses={bonuses}
             promos={promos}
             orders={orders}
+            favoriteProducts={favoriteProducts}
+            favorites={favorites}
+            compare={compare}
             reviews={myReviews}
             profileForm={profileForm ?? user}
             onTab={(tab) => nav({ name: 'account', tab })}
@@ -1034,6 +1038,7 @@ export function App() {
             onGame={startGame}
             onOpenProduct={openProduct}
             onDeleteReview={deleteReview}
+            actions={appActions}
           />
         )}
         {route.name === 'account' && !user && (
@@ -1941,23 +1946,28 @@ function FieldError(props: { error?: string; children: ReactNode }) {
 
 function AccountScreen(props: {
   user: User;
-  tab: 'profile' | 'orders' | 'bonuses' | 'reviews';
+  tab: AccountTab;
   bonuses: number;
   promos: Promo[];
   orders: Order[];
+  favoriteProducts: Product[];
+  favorites: number[];
+  compare: number[];
   reviews: Array<Review & { product: Product }>;
   profileForm: User;
-  onTab: (tab: 'profile' | 'orders' | 'bonuses' | 'reviews') => void;
+  onTab: (tab: AccountTab) => void;
   onLogout: () => void;
   onProfileField: (key: keyof User, value: string) => void;
   onSaveProfile: () => void;
   onGame: () => void;
   onOpenProduct: (id: number) => void;
   onDeleteReview: (id: string) => void;
+  actions: ProductActions;
 }) {
-  const tabs: Array<['profile' | 'orders' | 'bonuses' | 'reviews', string, string, number]> = [
+  const tabs: Array<[AccountTab, string, string, number]> = [
     ['profile', 'Профиль', '👤', 0],
     ['orders', 'Заказы', '📦', props.orders.length],
+    ['favorites', 'Избранное', '♥', props.favoriteProducts.length],
     ['bonuses', 'Бонусы', '🎟️', props.promos.length],
     ['reviews', 'Отзывы', '★', props.reviews.length],
   ];
@@ -2030,6 +2040,17 @@ function AccountScreen(props: {
                   </article>
                 ))}
               </div>
+            </div>
+          )}
+
+          {props.tab === 'favorites' && (
+            <div>
+              <h1 className="account-title">Избранные товары</h1>
+              {props.favoriteProducts.length === 0 ? (
+                <div className="empty-inline">В избранном пока нет товаров.</div>
+              ) : (
+                <ProductGrid products={props.favoriteProducts} favorites={props.favorites} compare={props.compare} actions={props.actions} />
+              )}
             </div>
           )}
 
@@ -2129,9 +2150,9 @@ function GameScreen(props: {
         {props.game.phase === 'play' && <span className="game-basket" style={{ left: `${props.game.basket}%` }}>🧺</span>}
         {props.game.phase === 'idle' && (
           <div className="game-overlay">
-            <div className="game-overlay__emoji">🧺</div>
+            <div className="game-overlay__emoji">🦔</div>
             <button onClick={props.onStart}>Начать игру</button>
-            <p>🦴 кость +2 · 🎾 мяч +1 · 🐛 червяк +3 · 💣 не лови</p>
+            <p>🦗 сверчок +2 · 🥒 огурец +1 · 🐛 гусеница +3 · 💣 проигрыш</p>
           </div>
         )}
         {props.game.phase === 'over' && props.game.result && (
@@ -2153,7 +2174,7 @@ function GameScreen(props: {
         )}
       </div>
       <div className="game-stats">
-        <span>🦴 Поймано бонусов всего: <strong>{props.bonuses}</strong></span>
+        <span>🦔 Поймано бонусов всего: <strong>{props.bonuses}</strong></span>
         <span>🎟️ Промокодов: <strong>{props.promoCount}</strong></span>
       </div>
     </section>

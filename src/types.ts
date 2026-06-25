@@ -81,7 +81,7 @@ export type SortKey =
 
 export type ViewMode = 'grid' | 'list';
 
-export type AccountTab = 'profile' | 'orders' | 'bonuses' | 'reviews';
+export type AccountTab = 'profile' | 'orders' | 'favorites' | 'bonuses' | 'reviews';
 
 export type Route =
   | { name: 'home' }
