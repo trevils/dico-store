@@ -300,19 +300,19 @@ textarea:focus-visible {
   font-size: 15px;
 }
 
-.hero {
+.dico {
   position: relative;
   min-height: 380px;
   overflow: hidden;
   border-radius: 30px;
 }
 
-.page--home .hero {
+.page--home .dico {
   min-height: clamp(440px, 32vw, 610px);
   border-radius: 0;
 }
 
-.hero__slide {
+.dicoMain__slide {
   position: absolute;
   inset: 0;
   display: flex;
@@ -322,11 +322,11 @@ textarea:focus-visible {
   transition: opacity 0.6s ease;
 }
 
-.page--home .hero__slide {
+.page--home .dicoMain__slide {
   padding: clamp(58px, 5vw, 86px) max(92px, calc((100vw - 1640px) / 2 + 72px)) clamp(52px, 4.4vw, 78px);
 }
 
-.hero__copy {
+.dicoMain__copy {
   position: relative;
   z-index: 3;
   flex: 0 0 min(58%, 650px);
@@ -336,7 +336,7 @@ textarea:focus-visible {
   justify-content: center;
 }
 
-.hero__tag {
+.dicoMain__tag {
   align-self: flex-start;
   margin-bottom: 20px;
   padding: 7px 14px;
@@ -346,7 +346,7 @@ textarea:focus-visible {
   white-space: nowrap;
 }
 
-.hero h1 {
+.dico h1 {
   max-width: 660px;
   margin: 0;
   font-family: 'Unbounded', sans-serif;
@@ -355,7 +355,7 @@ textarea:focus-visible {
   line-height: 1.03;
 }
 
-.hero p {
+.dico p {
   max-width: 440px;
   margin: 18px 0 0;
   font-size: 17px;
@@ -372,7 +372,7 @@ textarea:focus-visible {
   font-weight: 600;
 }
 
-.hero__blob {
+.dicoMain__blob {
   position: absolute;
   z-index: 1;
   right: -3%;
@@ -385,7 +385,7 @@ textarea:focus-visible {
   pointer-events: none;
 }
 
-.hero__visual {
+.dicoMain__visual {
   position: absolute;
   right: -5%;
   bottom: -10%;
@@ -402,7 +402,7 @@ textarea:focus-visible {
   pointer-events: none;
 }
 
-.hero__visual img {
+.dicoMain__visual img {
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -411,11 +411,11 @@ textarea:focus-visible {
   filter: drop-shadow(0 18px 28px rgba(20, 18, 40, 0.18));
 }
 
-.hero__visual span {
+.dicoMain__visual span {
   margin: auto;
 }
 
-.hero-arrow {
+.dico-arrow {
   position: absolute;
   top: 50%;
   z-index: 4;
@@ -430,23 +430,23 @@ textarea:focus-visible {
   transform: translateY(-50%);
 }
 
-.hero-arrow--left {
+.dico-arrow--left {
   left: 18px;
 }
 
-.hero-arrow--right {
+.dico-arrow--right {
   right: 18px;
 }
 
-.page--home .hero-arrow--left {
+.page--home .dico-arrow--left {
   left: clamp(24px, 2.5vw, 58px);
 }
 
-.page--home .hero-arrow--right {
+.page--home .dico-arrow--right {
   right: clamp(24px, 2.5vw, 58px);
 }
 
-.hero-dots {
+.dico-dots {
   position: absolute;
   left: 54px;
   bottom: 26px;
@@ -455,12 +455,12 @@ textarea:focus-visible {
   gap: 8px;
 }
 
-.page--home .hero-dots {
+.page--home .dico-dots {
   left: max(92px, calc((100vw - 1640px) / 2 + 72px));
   bottom: clamp(30px, 3vw, 46px);
 }
 
-.hero-dot {
+.dico-dot {
   width: 8px;
   height: 7px;
   padding: 0;
@@ -468,7 +468,7 @@ textarea:focus-visible {
   transition: width 0.3s ease;
 }
 
-.hero-dot--active {
+.dico-dot--active {
   width: 26px;
 }
 
@@ -683,7 +683,7 @@ textarea:focus-visible {
   filter: drop-shadow(0 12px 18px rgba(20, 18, 40, 0.14));
   transition: transform 0.3s ease;
 }
-
+ф
 .product-card:hover .product-card__emoji,
 .product-card:hover .product-card__image {
   transform: scale(1.08);
@@ -963,7 +963,7 @@ textarea:focus-visible {
 
 .catalog-main {
   min-width: 0;
-}
+}д
 
 .sort-panel {
   display: flex;
@@ -1381,6 +1381,8 @@ textarea:focus-visible {
 .review-form p {
   margin: 4px 0 0;
 }
+
+щ
 
 .star-input {
   display: flex;
@@ -2102,7 +2104,7 @@ textarea:focus-visible {
 }
 
 .bonus-card,
-.bonus-hero {
+.bonus-dico {
   background: linear-gradient(120deg, var(--purple), oklch(0.62 0.2 330));
   color: #fff;
 }
@@ -2114,8 +2116,8 @@ textarea:focus-visible {
 }
 
 .bonus-card span,
-.bonus-hero span,
-.bonus-hero small {
+.bonus-dico span,
+.bonus-dico small {
   display: block;
   opacity: 0.85;
   font-size: 12px;
@@ -2272,7 +2274,7 @@ textarea:focus-visible {
   font-size: 18px;
 }
 
-.bonus-hero {
+.bonus-dico {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -2281,14 +2283,14 @@ textarea:focus-visible {
   border-radius: 22px;
 }
 
-.bonus-hero strong {
+.bonus-dico strong {
   display: block;
   margin-top: 4px;
   font-family: 'Unbounded', sans-serif;
   font-size: 42px;
 }
 
-.bonus-hero button {
+.bonus-dico button {
   padding: 14px 26px;
   border-radius: 999px;
   background: #fff;
@@ -2682,7 +2684,7 @@ textarea:focus-visible {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .hero h1 {
+  .dico h1 {
     font-size: 40px;
   }
 
@@ -2751,29 +2753,29 @@ textarea:focus-visible {
     padding-right: 18px;
   }
 
-  .hero {
+  .dico {
     min-height: 560px;
   }
 
-  .hero__slide {
+  .dicoMain__slide {
     flex-direction: column;
     padding: 42px 24px 34px;
   }
 
-  .page--home .hero__slide {
+  .page--home .dicoMain__slide {
     padding: 42px 24px 34px;
   }
 
-  .hero__copy {
+  .dicoMain__copy {
     flex: 0 0 auto;
     max-width: 96%;
   }
 
-  .hero h1 {
+  .dico h1 {
     font-size: 32px;
   }
 
-  .hero__visual {
+  .dicoMain__visual {
     right: -10%;
     bottom: -8%;
     width: 86%;
@@ -2781,7 +2783,7 @@ textarea:focus-visible {
     opacity: 0.5;
   }
 
-  .hero__blob {
+  .dicoMain__blob {
     right: -12%;
     bottom: -6%;
     width: 78%;
@@ -2789,30 +2791,30 @@ textarea:focus-visible {
     opacity: 0.75;
   }
 
-  .hero__visual img {
+  .dicoMain__visual img {
     height: 100%;
   }
 
-  .hero-arrow {
+  .dico-arrow {
     top: auto;
     bottom: 20px;
     transform: none;
   }
 
-  .page--home .hero-arrow--left {
+  .page--home .dico-arrow--left {
     left: 18px;
   }
 
-  .page--home .hero-arrow--right {
+  .page--home .dico-arrow--right {
     right: 18px;
   }
 
-  .hero-dots {
+  .dico-dots {
     left: 50%;
     transform: translateX(-50%);
   }
 
-  .page--home .hero-dots {
+  .page--home .dico-dots {
     left: 50%;
     bottom: 26px;
     transform: translateX(-50%);
@@ -2865,7 +2867,7 @@ textarea:focus-visible {
   .buy-row,
   .footer,
   .auth-notice,
-  .bonus-hero,
+  .bonus-dico,
   .collection-head {
     align-items: stretch;
     flex-direction: column;
@@ -2959,7 +2961,7 @@ textarea:focus-visible {
     font-size: 28px;
   }
 
-  .hero h1 {
+  .dico h1 {
     font-size: 28px;
   }
 

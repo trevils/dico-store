@@ -33,7 +33,7 @@ import {
   starterReviews,
 } from './app-config';
 import { categories, pets, products, promoSlides, purposes } from './data';
-import type { PromoTarget } from './data';
+import type { PromoDicoTarget } from './data';
 import { badgeLabel, badgeMeta, fmt, matchesProduct, readStorage, sortedProducts, writeStorage } from './shop-utils';
 import {
   bonusForOrder,
@@ -650,7 +650,7 @@ export function App() {
     nav({ name: 'game' });
   };
 
-  const openPromoTarget = (target: PromoTarget) => {
+  const openPromoTarget = (target: PromoDicoTarget) => {
     if (target.name === 'catalog') {
       setFilters((value) => ({ ...value, cats: [target.cat] }));
       setPage(1);
@@ -1177,7 +1177,7 @@ function HomeScreen(props: {
   onCatalog: () => void;
   onSetCategory: (cat: CategoryId) => void;
   onSetBrand: (brand: string) => void;
-  onPromoSelect: (target: PromoTarget) => void;
+  onPromoSelect: (target: PromoDicoTarget) => void;
   actions: ProductActions;
 }) {
   const popular = sortedProducts(products, 'popular').slice(0, 8);
@@ -1264,7 +1264,7 @@ function HomeScreen(props: {
 
 function PromotionsScreen(props: {
   onHome: () => void;
-  onPromoSelect: (target: PromoTarget) => void;
+  onPromoSelect: (target: PromoDicoTarget) => void;
 }) {
   return (
     <section className="page page--promotions">
