@@ -34,7 +34,7 @@ export const emptyCheckout: CheckoutFields = { name: '', phone: '', address: '',
 
 export const emptyGame: GameState = { phase: 'idle', score: 0, time: 30, toys: [], basket: 50, result: null };
 
-export const promoCatalog: Record<string, Promo> = {
+export const promoCodeUsef: Record<string, Promo> = {
   DIKO10: { code: 'DIKO10', type: 'percent', value: 10 },
   EXOTIC15: { code: 'EXOTIC15', type: 'percent', value: 15 },
   WELCOME300: { code: 'WELCOME300', type: 'fixed', value: 300 },
@@ -53,17 +53,17 @@ export const starterReviews: Record<number, Review[]> = {
   1: [
     {
       id: 'seed-1-1',
-      author: 'Марина Орлова',
+      author: 'Марина Мирная',
       rating: 5,
-      text: 'Террариум приехал целым, стекло плотное, дверцы закрываются без люфта. Эублефар быстро освоился.',
+      text: 'Террариум приехал целым, стекло тип прозрачное такео, дверцы закрываются без люфта. Эушка сразу территорию присвоил.',
       date: '12.05.2026',
       productId: 1,
     },
     {
       id: 'seed-1-2',
-      author: 'Игорь Сафин',
+      author: 'Игорь Волк',
       rating: 4,
-      text: 'Хороший размер для молодого питомца. Хотелось бы больше вентиляционных отверстий сверху, но в целом покупкой доволен.',
+      text: 'Хороший размер для молодого питомца. Хотелось бы больше отверстий сверху, но в целом покупкой доволен.',
       date: '27.04.2026',
       productId: 1,
     },
@@ -82,8 +82,8 @@ export const starterReviews: Record<number, Review[]> = {
     {
       id: 'seed-4-1',
       author: 'Сергей Петров',
-      rating: 5,
-      text: 'Лампа яркая, установилась в стандартный держатель. После недели использования всё работает стабильно.',
+      rating: 3,
+      text: 'Лампа яркая, установилась в стандартный держатель. После недели дополню отзыв.',
       date: '18.05.2026',
       productId: 4,
     },
@@ -113,7 +113,7 @@ export const starterReviews: Record<number, Review[]> = {
       id: 'seed-18-1',
       author: 'Наталья',
       rating: 5,
-      text: 'Хорошее лакомство для дрессировки. Банка закрывается плотно, черви сухие и без лишней пыли.',
+      text: 'Хорошики червачачки. Банка закрывается плотно, черви сухие и без лишней пыли.',
       date: '16.04.2026',
       productId: 18,
     },

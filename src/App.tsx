@@ -28,7 +28,7 @@ import {
   emptyGame,
   galleryLabels,
   galleryTints,
-  promoCatalog,
+  promoCodeUsef,
   sortDefs,
   starterReviews,
 } from './app-config';
@@ -77,19 +77,19 @@ interface ProductCardProps {
 
 function ProductMedia({
   product,
-  imageClassName,
+  imageCNaming,
   emojiClassName,
   loading = 'lazy',
 }: {
   product: Product;
-  imageClassName: string;
+  imageCNaming: string;
   emojiClassName: string;
   loading?: 'eager' | 'lazy';
 }) {
   if (product.image) {
     return (
       <img
-        className={imageClassName}
+        className={imageCNaming}
         src={product.image}
         alt={product.imageAlt ?? product.title}
         loading={loading}
@@ -104,13 +104,13 @@ function ProductMedia({
 function ProductGalleryMedia({
   product,
   index,
-  imageClassName,
+  imageCNaming,
   emojiClassName,
   loading = 'lazy',
 }: {
   product: Product;
   index: number;
-  imageClassName: string;
+  imageCNaming: string;
   emojiClassName: string;
   loading?: 'eager' | 'lazy';
 }) {
@@ -119,7 +119,7 @@ function ProductGalleryMedia({
   if (image) {
     return (
       <img
-        className={imageClassName}
+        className={imageCNaming}
         src={image}
         alt={`${product.imageAlt ?? product.title}: ${galleryLabels[index] ?? 'фото товара'}`}
         data-view={index}
@@ -138,7 +138,7 @@ function ProductCard({ product, fav, compared, onOpen, onAdd, onFav, onCompare }
   return (
     <article className="product-card" onClick={() => onOpen(product.id)}>
       <div className="product-card__visual">
-        <ProductMedia product={product} imageClassName="product-card__image" emojiClassName="product-card__emoji" />
+        <ProductMedia product={product} imageCNaming="product-card__image" emojiClassName="product-card__emoji" />
         {product.badge && (
           <span className="badge" style={{ background: badge.bg, color: badge.color }}>
             {badgeLabel(product)}
@@ -478,7 +478,7 @@ export function App() {
     const code = promoInput.trim().toUpperCase();
     if (!code) return;
 
-    const promo = promoCatalog[code] ?? promos.find((item) => item.code === code) ?? null;
+    const promo = promoCodeUsef[code] ?? promos.find((item) => item.code === code) ?? null;
     if (!promo) {
       showToast('Промокод не найден', '✕');
       return;
@@ -1478,7 +1478,7 @@ function CatalogScreen(props: {
               {props.shownProducts.map((product) => (
                 <article className="product-row" key={product.id} onClick={() => props.actions.openProduct(product.id)}>
                   <div className="product-row__visual">
-                    <ProductMedia product={product} imageClassName="product-row__image" emojiClassName="product-row__emoji" />
+                    <ProductMedia product={product} imageCNaming="product-row__image" emojiClassName="product-row__emoji" />
                   </div>
                   <div className="product-row__body">
                     <div className="muted small">{product.brand}</div>
@@ -1554,7 +1554,7 @@ function ProductScreen(props: {
       <div className="product-detail">
         <div className="gallery">
           <div className="gallery__main" style={{ background: galleryTints[props.galleryIndex] }}>
-            <ProductGalleryMedia product={props.product} index={props.galleryIndex} imageClassName="gallery__image" emojiClassName="gallery__emoji" loading="eager" />
+            <ProductGalleryMedia product={props.product} index={props.galleryIndex} imageCNaming="gallery__image" emojiClassName="gallery__emoji" loading="eager" />
           </div>
           <div className="gallery__thumbs">
             {galleryLabels.map((label, index) => (
@@ -1565,7 +1565,7 @@ function ProductScreen(props: {
                 style={{ background: galleryTints[index] }}
                 onClick={() => props.onGallery(index)}
               >
-                <ProductGalleryMedia product={props.product} index={index} imageClassName="gallery__thumb-image" emojiClassName="gallery__thumb-emoji" />
+                <ProductGalleryMedia product={props.product} index={index} imageCNaming="gallery__thumb-image" emojiClassName="gallery__thumb-emoji" />
               </button>
             ))}
           </div>
@@ -1714,7 +1714,7 @@ function CartScreen(props: {
           {props.items.map(({ line, product }) => (
             <article className="cart-line" key={line.id}>
               <button className="cart-line__visual" onClick={() => props.onOpen(product.id)}>
-                <ProductMedia product={product} imageClassName="cart-line__image" emojiClassName="cart-line__emoji" />
+                <ProductMedia product={product} imageCNaming="cart-line__image" emojiClassName="cart-line__emoji" />
               </button>
               <div>
                 <p className="muted small">{product.brand}</p>
@@ -2151,7 +2151,7 @@ function AccountScreen(props: {
                     <div className="review-item__head">
                       <button className="review-product-link" onClick={() => props.onOpenProduct(review.product.id)}>
                         <span className="review-product-link__visual">
-                          <ProductMedia product={review.product} imageClassName="review-product-link__image" emojiClassName="review-product-link__emoji" />
+                          <ProductMedia product={review.product} imageCNaming="review-product-link__image" emojiClassName="review-product-link__emoji" />
                         </span>
                         <div>
                           <strong>{review.product.title}</strong>
