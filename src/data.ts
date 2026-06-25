@@ -1,4 +1,12 @@
 import type { Category, Pet, Product } from './types';
+import achetaDomesticusImage from './assets/images/product-cards/Acheta-domesticus-Nutritious-Meal.webp';
+import driedMealwormsImage from './assets/images/product-cards/Dried-Mealworms-Nutritious-Treat.webp';
+import heatedTerrariumMatImage from './assets/images/product-cards/Heated-Terrarium-mat-repti.webp';
+import lampUvBImage from './assets/images/product-cards/Lamp-UVB-10.0-Repti.webp';
+import hedgehogMealImage from './assets/images/product-cards/nutritious-meal-hedgehog.webp';
+import stickXxlCoypuImage from './assets/images/product-cards/stick-XXL-coypu.webp';
+import terrariumExoTerraImage from './assets/images/product-cards/terrarium-exo-tera-45.webp';
+import verseleLagaNutribirdImage from './assets/images/product-cards/Versele-Laga-Nutribird.webp';
 
 export const categories: Category[] = [
   { id: 'food', name: 'Корма', emoji: '🥩' },
@@ -31,39 +39,29 @@ export const purposes = [
   'Прогулка',
 ];
 
-const categoryEmoji: Record<string, string> = {
-  food: '🥩',
-  treats: '🍖',
-  toys: '🎾',
-  beds: '🛏️',
-  carriers: '🧳',
-  care: '🧴',
-  clothes: '🧥',
-  litter: '🌾',
-  terra: '🪨',
+// без дублей руками
+const catMap = new Map(categories.map((c) => [c.id, c]));
+const petMap = new Map(pets.map((p) => [p.id, p]));
+
+const productImages: Partial<Record<number, { src: string; alt: string }>> = {
+  1: { src: terrariumExoTerraImage, alt: 'Террариум Exo Terra 45×45×45' },
+  2: { src: hedgehogMealImage, alt: 'Корм для ёжиков ExoticPro' },
+  3: { src: stickXxlCoypuImage, alt: 'Деревянная палка для нутрии' },
+  4: { src: lampUvBImage, alt: 'УФ-лампа Repti UVB 10.0' },
+  8: { src: achetaDomesticusImage, alt: 'Кормовые сверчки Acheta domesticus' },
+  12: { src: verseleLagaNutribirdImage, alt: 'Корм Versele-Laga NutriBird' },
+  14: { src: heatedTerrariumMatImage, alt: 'Террариумный коврик с подогревом' },
+  18: { src: driedMealwormsImage, alt: 'Сушёные мучные черви' },
 };
 
-const petEmoji: Record<string, string> = {
-  reptile: '🦎',
-  hedgehog: '🦔',
-  bird: '🦜',
-  rodent: '🐹',
-  nutria: '🦫',
-  insect: '🕷️',
-};
+// вес
+function packLabel(g: number): [string, string] {
+  if (!g) return ['Упаковка', 'штучно'];
+  return g >= 1000 ? ['Вес', `${g / 1000} кг`] : ['Вес', `${g} г`];
+}
 
-const petName: Record<string, string> = {
-  reptile: 'Рептилии',
-  hedgehog: 'Ёжики',
-  bird: 'Птицы',
-  rodent: 'Грызуны',
-  nutria: 'Нутрии',
-  insect: 'Насекомые',
-};
-
-const categoryName = Object.fromEntries(categories.map((cat) => [cat.id, cat.name]));
-
-type RawProduct = [
+// TODO: должно ехать с бэка щас пока так
+type Row = [
   number,
   string,
   Product['cat'],
@@ -81,10 +79,10 @@ type RawProduct = [
   number,
 ];
 
-const rawProducts: RawProduct[] = [
+const rows: Row[] = [
   [1, 'Террариум Exo Terra 45×45×45', 'terra', 'reptile', 'Exo Terra', 6490, 7990, 4.8, 214, 0, 'any', ['Сон и отдых'], true, 'hit', 980],
   [2, 'Корм для ёжиков ExoticPro 2 кг', 'food', 'hedgehog', 'ExoticPro', 1290, 0, 4.6, 88, 2000, 'adult', ['Рост и развитие', 'Иммунитет'], true, '', 540],
-  [3, 'Палка для нутрии XL, дерево', 'toys', 'nutria', 'WildLife', 2750, 3200, 4.9, 31, 0, 'any', ['Сон и отдых'], true, 'sale', 410],
+  [3, 'Палка для нутрии XL, дерево', 'toys', 'nutria', 'WildLife', 2750, 3200, 4.9, 31, 0, 'any', ['Зубы и когти'], true, 'sale', 410],
   [4, 'УФ-лампа Repti UVB 10.0', 'care', 'reptile', 'Repti', 1890, 0, 4.7, 126, 0, 'any', ['Иммунитет'], true, 'hit', 760],
   [5, 'Лакомство для попугаев Padovan, фрукты 100 г', 'treats', 'bird', 'Padovan', 390, 0, 4.5, 64, 100, 'any', ['Дрессировка'], true, '', 300],
   [6, 'Домик-нора для ёжика, плюш', 'beds', 'hedgehog', 'ZooMir', 990, 1290, 4.8, 53, 0, 'any', ['Сон и отдых'], true, 'sale', 350],
@@ -108,24 +106,14 @@ const rawProducts: RawProduct[] = [
   [24, 'Шлейка-поводок для рептилии', 'clothes', 'reptile', 'Triol', 430, 590, 4.3, 16, 0, 'baby', ['Прогулка'], true, 'sale', 110],
 ];
 
-export const products: Product[] = rawProducts.map((item) => {
-  const [
-    id,
-    title,
-    cat,
-    pet,
-    brand,
-    price,
-    old,
-    rating,
-    reviews,
-    weight,
-    age,
-    productPurposes,
-    stock,
-    badge,
-    popularity,
-  ] = item;
+export const products: Product[] = rows.map((row) => {
+  const [id, title, cat, pet, brand, price, old, rating, reviews, weight, age, productPurposes, stock, badge, popularity] = row;
+
+  const petInfo = petMap.get(pet);
+  const catInfo = catMap.get(cat);
+  const imageInfo = productImages[id];
+  // заглушки по еррорам id
+  const petTitle = petInfo?.name ?? pet;
 
   return {
     id,
@@ -143,17 +131,16 @@ export const products: Product[] = rawProducts.map((item) => {
     stock,
     badge,
     popularity,
-    emoji: petEmoji[pet],
-    catEmoji: categoryEmoji[cat],
-    petName: petName[pet],
-    desc: 'Подходит для содержания экзотических питомцев. Безопасные материалы, проверено заводчиками сообщества ДИКО.',
+    ...(imageInfo ? { image: imageInfo.src, imageAlt: imageInfo.alt } : {}),
+    emoji: petInfo?.emoji ?? '🐾',
+    catEmoji: catInfo?.emoji ?? '📦',
+    petName: petTitle,
+    desc: `Подходит для содержания экзотических питомцев (${petTitle.toLowerCase()}). Безопасные материалы, проверено заводчиками сообщества ДИКО.`,
     specs: [
       ['Бренд', brand],
-      ['Категория', categoryName[cat] ?? cat],
-      ['Для кого', petName[pet]],
-      weight
-        ? ['Вес', weight >= 1000 ? `${weight / 1000} кг` : `${weight} г`]
-        : ['Упаковка', 'штучно'],
+      ['Категория', catInfo?.name ?? cat],
+      ['Для кого', petTitle],
+      packLabel(weight),
       ['Страна', 'Германия'],
     ],
   };

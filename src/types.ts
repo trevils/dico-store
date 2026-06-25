@@ -48,6 +48,8 @@ export interface Product {
   stock: boolean;
   badge: Badge;
   popularity: number;
+  image?: string;
+  imageAlt?: string;
   emoji: string;
   catEmoji: string;
   petName: string;

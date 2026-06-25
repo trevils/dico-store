@@ -164,13 +164,39 @@ interface ProductCardProps {
   onCompare: (id: number) => void;
 }
 
+function ProductMedia({
+  product,
+  imageClassName,
+  emojiClassName,
+  loading = 'lazy',
+}: {
+  product: Product;
+  imageClassName: string;
+  emojiClassName: string;
+  loading?: 'eager' | 'lazy';
+}) {
+  if (product.image) {
+    return (
+      <img
+        className={imageClassName}
+        src={product.image}
+        alt={product.imageAlt ?? product.title}
+        loading={loading}
+        decoding="async"
+      />
+    );
+  }
+
+  return <span className={emojiClassName}>{product.emoji}</span>;
+}
+
 function ProductCard({ product, fav, compared, onOpen, onAdd, onFav, onCompare }: ProductCardProps) {
   const badge = badgeMeta(product.badge);
 
   return (
     <article className="product-card" onClick={() => onOpen(product.id)}>
       <div className="product-card__visual">
-        <span className="product-card__emoji">{product.emoji}</span>
+        <ProductMedia product={product} imageClassName="product-card__image" emojiClassName="product-card__emoji" />
         {product.badge && (
           <span className="badge" style={{ background: badge.bg, color: badge.color }}>
             {badgeLabel(product)}
@@ -1389,7 +1415,9 @@ function CatalogScreen(props: {
             <div className="product-list">
               {props.shownProducts.map((product) => (
                 <article className="product-row" key={product.id} onClick={() => props.actions.openProduct(product.id)}>
-                  <div className="product-row__visual">{product.emoji}</div>
+                  <div className="product-row__visual">
+                    <ProductMedia product={product} imageClassName="product-row__image" emojiClassName="product-row__emoji" />
+                  </div>
                   <div className="product-row__body">
                     <div className="muted small">{product.brand}</div>
                     <h3>{product.title}</h3>
@@ -1463,7 +1491,7 @@ function ProductScreen(props: {
       <div className="product-detail">
         <div className="gallery">
           <div className="gallery__main" style={{ background: galleryTints[props.galleryIndex] }}>
-            {props.product.emoji}
+            <ProductMedia product={props.product} imageClassName="gallery__image" emojiClassName="gallery__emoji" loading="eager" />
           </div>
           <div className="gallery__thumbs">
             {galleryLabels.map((label, index) => (
@@ -1474,7 +1502,7 @@ function ProductScreen(props: {
                 style={{ background: galleryTints[index] }}
                 onClick={() => props.onGallery(index)}
               >
-                {props.product.emoji}
+                <ProductMedia product={props.product} imageClassName="gallery__thumb-image" emojiClassName="gallery__thumb-emoji" />
               </button>
             ))}
           </div>
@@ -1610,7 +1638,9 @@ function CartScreen(props: {
         <div className="cart-lines">
           {props.items.map(({ line, product }) => (
             <article className="cart-line" key={line.id}>
-              <button className="cart-line__visual" onClick={() => props.onOpen(product.id)}>{product.emoji}</button>
+              <button className="cart-line__visual" onClick={() => props.onOpen(product.id)}>
+                <ProductMedia product={product} imageClassName="cart-line__image" emojiClassName="cart-line__emoji" />
+              </button>
               <div>
                 <p className="muted small">{product.brand}</p>
                 <button className="cart-line__title" onClick={() => props.onOpen(product.id)}>{product.title}</button>
@@ -1864,7 +1894,7 @@ function AuthScreen(props: {
         <button className="auth-submit" onClick={props.onSubmit}>{register ? 'Зарегистрироваться' : 'Войти'}</button>
         {!register && (
           <div className="demo-access">
-            <strong>Демо-доступ для преподавателя:</strong>
+            <strong>Демо-доступ:</strong>
             <span>liubovsheyda@gmail.com / Teacher_2026</span>
           </div>
         )}
@@ -2012,7 +2042,9 @@ function AccountScreen(props: {
                   <article className="review-item" key={review.id}>
                     <div className="review-item__head">
                       <button className="review-product-link" onClick={() => props.onOpenProduct(review.product.id)}>
-                        <span>{review.product.emoji}</span>
+                        <span className="review-product-link__visual">
+                          <ProductMedia product={review.product} imageClassName="review-product-link__image" emojiClassName="review-product-link__emoji" />
+                        </span>
                         <div>
                           <strong>{review.product.title}</strong>
                           <small>{review.date}</small>
